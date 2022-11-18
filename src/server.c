@@ -130,6 +130,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
         // A GET request
+        printf("Deal with a GET method\n");
         char *item_seek = request->http_uri;
         char whole_path[BUF_SIZE];
         memset(whole_path, 0, sizeof(whole_path));
@@ -228,6 +229,7 @@ int main(int argc, char *argv[]) {
                     } else {
                         // a client send new request to us
                         // read everything from the socket once, 8192 at most
+                        printf("Get some messages from client connection fd=%d\n", poll_array->pfds[i].fd);
                         char local_buf[BUF_SIZE];
                         memset(local_buf, 0, sizeof(local_buf));
                         ssize_t ready = recv(ready_fd, local_buf, BUF_SIZE, COMMON_FLAG);
@@ -254,6 +256,7 @@ int main(int argc, char *argv[]) {
                         }
                         // try to parse data to see if we have valid requests, and respond accordingly
                         // use while loop to handle multiple requests
+                        printf("Try to parse the request\n");
                         Request request;
                         int read_amount;
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
@@ -262,7 +265,8 @@ int main(int argc, char *argv[]) {
                                (result_code == TEST_ERROR_NONE || result_code == TEST_ERROR_PARSE_FAILED)) {
                             // handle normal request here
                             if (result_code == TEST_ERROR_NONE) {
-
+                                printf("Parsed a full request, about to serve_request()\n");
+                                serve_request(ready_fd, &request, www_folder);
                             // handle malformed result
                             } else {
                                 // TODO: handle malformed request
