@@ -19,7 +19,20 @@
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
-
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <poll.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include "test_error.h"
 
 #define SUCCESS 0
@@ -90,7 +103,7 @@ test_error_code_t serialize_http_request(char *buffer, size_t* size, Request *re
  * @param      request The request (output)
  * @return     the error code
  */
-test_error_code_t parse_http_request(char *buffer, size_t size, Request * request);
+test_error_code_t parse_http_request(char *buffer, size_t size, Request * request, int *read_amount);
 
 
 /**
@@ -109,4 +122,103 @@ test_error_code_t serialize_http_response(char **msg, size_t *len,
     const char *prepopulated_headers, char *content_type, char *content_length, 
     char *last_modified, size_t body_len, char *body);
 
+#define INIT_POLL_ARRAY_CAPACITY 8
+
+/**
+ * @brief Get the real struct address pointer position.
+ * It discriminates between IPv4 or IPv6 by inspecting the sa_family field.
+ * @param sa pointer to the general struct sockaddr
+ * @return void* pointer to struct sockaddr_in (IPv4) or sockaddr_in6 (IPv6)
+ */
+void *get_addr_in(const struct sockaddr *sa);
+
+/**
+ * @brief Build a client side socket.
+ * Caller should close the socket descriptor after usage.
+ * @param hostname the server's IP Address or Hostname to connect to
+ * @param port the server's listening port to connect to
+ * @param verbose if set True, intermediate logging will be made to stdout
+ * @return the client socket descriptor, or -1 if any error happens
+ */
+int build_client(const char *host, const char *port, bool verbose);
+
+/**
+ * @brief Build a server slide socket.
+ * It assume the server will listen on its own local machine's IP Address
+ * Caller should close the socket descriptor after usage.
+ * @param port the port server will be listening to
+ * @param backlog how many pending connections to be accept()-ed the server
+ * queue will hold
+ * @param verbose if set True, intermediate logging will be made to stdout
+ * @return int the listening socket descriptor, -1 if any error happens
+ */
+int build_server(const char *port, const int backlog, bool verbose);
+
+/**
+ * @brief Ensure to read in as many as len bytes of data into user provided
+ * buffer. It will sit-wait until read in all the required many bytes.
+ * @param fd the file descriptor to read from, typically socket
+ * @param buf the buffer to place the data read from fd
+ * @param len how many bytes to read from the fd
+ * @attention user must ensure the buffer has at least len many space available
+ * @return ssize_t how many bytes read, or -1 if any error happens
+ */
+ssize_t robust_read(int fd, void *buf, const size_t len);
+
+/**
+ * @brief Ensure to write out as many as len bytes of data from the user
+ * provided buffer It will sit-wait until write out all the required many bytes
+ * @param fd the file descriptor, typically socket
+ * @param buf the buffer which contains data to be written into fd
+ * @param len how many bytes to write into the fd
+ * @attention user must ensure the buffer has at least len many space available
+ * @return ssize_t how many bytes written, or -1 if any error happens
+ */
+ssize_t robust_write(int fd, const void *buf, const size_t len);
+
+/**
+   @brief poll() functionality support.
+   notice it always use malloc() and free() regardless of compiling on C or C++.
+   therefore, user must adhere to call init_poll_array() and
+   release_poll_array(), instead of attempting to release the allocated space
+   themselves
+*/
+typedef struct poll_array {
+    struct pollfd *pfds;  // points to the array of struct pollfd for poll
+    char **buffers;       // temporary storage for data polled out from a socket fd
+    int *sizes;           // keep track of sizes of buffers
+    nfds_t count;         // how many are there in the array pfds
+    nfds_t capacity;      // the underlying allocated space for pfds
+} poll_array_t;
+
+/**
+ * @brief Initialize an poll array with default capacity.
+ * @return poll_array_t* pointer to the new allocated poll array struct
+ */
+poll_array_t *init_poll_array();
+
+/**
+ * @brief Add a new socket descriptor under poll monitoring.
+ * User should ensure that no duplicate fd is added into the array.
+ * This functionality doesn't check for duplicate inserts.
+ * @param new_fd new socket descriptor to be added
+ * @param array pointer to the allocated poll array struct
+ * @param flag the bit flag for the descriptor to be monitored upon
+ */
+void add_to_poll_array(int new_fd, poll_array_t *array, short flag);
+
+/**
+ * @brief Remove an indexed socket descriptor from the poll array
+ * User should ensure the index lies in between [0, array->count)
+ * If the index out of bound, the program will exit with code 1
+ * @param remove_idx the to-be-removed index from the poll array
+ * @param array pointer to the allocated poll array struct
+ */
+void remove_from_poll_array(int remove_idx, poll_array_t *array);
+
+/**
+ * @brief Release the dynamical allocated space for poll array
+ * @param array pointer to the allocated poll array
+ */
+void release_poll_array(poll_array_t *array);
 #endif
