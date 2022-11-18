@@ -179,6 +179,11 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         // A HEAD request
     } else if (strcmp(request->http_method, POST) == 0) {
         // A POST request, echo back the whole request directly
+        char request_buf[BUF_SIZE];
+        size_t request_size;
+        serialize_http_request(request_buf, &request_size, request);
+        // echo the request back to the other end
+        robust_write(client_fd, request_buf, request_size);
     }
 
 }
@@ -274,6 +279,14 @@ int main(int argc, char *argv[]) {
                             if (result_code == TEST_ERROR_NONE) {
                                 printf("Parsed a full request, about to serve_request()\n");
                                 serve_request(ready_fd, &request, www_folder);
+                                // if the request has 'Connection: close' in header
+                                const char *connection_close = "connection: close";
+                                // should close the connection after service immediately
+                                if (strcasestr(poll_array->buffers[i], connection_close) != NULL) {
+                                    // case insensitive search
+                                    remove_from_poll_array(i, poll_array);
+                                    break;
+                                }
                             // handle malformed result
                             } else {
                                 // TODO: handle malformed request
