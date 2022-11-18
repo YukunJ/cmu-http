@@ -59,6 +59,8 @@ void load_file(const char *filename, char **buf, size_t *size) {
     size_t fsize = ftell(f);
     fseek(f, 0, SEEK_SET);  /* back to beginning */
 
+    printf("The file %s we are able to server is %zu bytes in total\n", filename, fsize);
+
     char *content= malloc(fsize + 1);
     fread(content, fsize, 1, f);
     fclose(f);
@@ -135,8 +137,12 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         char whole_path[BUF_SIZE];
         memset(whole_path, 0, sizeof(whole_path));
         memcpy(whole_path, server_dir, strlen(server_dir));
+        if (strcmp(item_seek, "/") == 0) {
+            // default route '/' to '/index.html'
+            item_seek = "/index.html";
+        }
         strncat(whole_path, item_seek, strlen(item_seek));
-        size_t whole_path_len = strlen(whole_path);
+
         if (check_file_existence(whole_path)) {
             // the requested file do exist
             // load the file into memory
@@ -172,7 +178,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
     } else if (strcmp(request->http_method, HEAD) == 0) {
         // A HEAD request
     } else if (strcmp(request->http_method, POST) == 0) {
-        // A POST request
+        // A POST request, echo back the whole request directly
     }
 
 }
@@ -241,6 +247,7 @@ int main(int argc, char *argv[]) {
                             // client exit
                             printf("The client fd=%d has exited\n", poll_array->pfds[i].fd);
                             remove_from_poll_array(i, poll_array); // caution: pass in index
+                            continue;
                         } else {
                             // glue together the buffers
                             if (poll_array->sizes[i] == 0) {
