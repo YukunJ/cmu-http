@@ -12,5 +12,6 @@
 #define PORTS_H
 
 #define HTTP_PORT 20080
+#define HTTP_PORT_CHAR "20080"
 
 #endif

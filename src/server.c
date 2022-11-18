@@ -192,20 +192,23 @@ int main(int argc, char *argv[]) {
     }
     closedir(www_dir);
 
+    printf("Successfully checked that the folder %s can be opened\n", www_folder);
     /* CP1: Set up sockets and read the buf */
 
     /* build the listening server descriptor */
     int max_pending_queue = 200; /* how many pending connection allowed to be placed in the socket queue */
-    int listen_fd = build_server(HTTP_PORT, max_pending_queue, true);
+    int listen_fd = build_server(HTTP_PORT_CHAR, max_pending_queue, true);
     if (listen_fd == -1) {
         fprintf(stderr, "Unable to build listening fd\n");
         return EXIT_FAILURE;
     }
+
     poll_array_t *poll_array = init_poll_array();
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
+    printf("About to begin main while loop\n");
     while (true) {
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
         if (ready_count > 0) {
@@ -220,6 +223,7 @@ int main(int argc, char *argv[]) {
                         struct sockaddr_storage their_addr;
                         socklen_t sin_size = sizeof(their_addr);
                         int new_client_fd = accept(ready_fd, (struct sockaddr *)&their_addr, &sin_size);
+                        printf("Get a new client connection fd=%d\n", new_client_fd);
                         add_to_poll_array(new_client_fd, poll_array, POLLIN);
                     } else {
                         // a client send new request to us
@@ -233,6 +237,7 @@ int main(int argc, char *argv[]) {
                             return EXIT_FAILURE;
                         } else if (ready == 0) {
                             // client exit
+                            printf("The client fd=%d has exited\n", poll_array->pfds[i].fd);
                             remove_from_poll_array(i, poll_array); // caution: pass in index
                         } else {
                             // glue together the buffers
