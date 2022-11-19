@@ -344,6 +344,14 @@ int main(int argc, char *argv[]) {
                                 // handle malformed result
                             } else {
                                 // TODO: handle malformed request
+                                char *response;
+                                size_t response_len;
+                                serialize_http_response(&response, &response_len, BAD_REQUEST, NULL, NULL,
+                                                        NULL, 0, NULL, true);
+                                robust_write(ready_fd, response, response_len);
+                                free(response);
+                                remove_from_poll_array(i, poll_array);
+                                break;
                             }
                             if (read_amount == poll_array->sizes[i]) {
                                 printf("read everything from the buffer\n");
