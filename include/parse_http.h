@@ -120,7 +120,7 @@ test_error_code_t parse_http_request(char *buffer, size_t size, Request * reques
  */
 test_error_code_t serialize_http_response(char **msg, size_t *len, 
     const char *prepopulated_headers, char *content_type, char *content_length, 
-    char *last_modified, size_t body_len, char *body);
+    char *last_modified, size_t body_len, char *body, bool should_close);
 
 #define INIT_POLL_ARRAY_CAPACITY 8
 
