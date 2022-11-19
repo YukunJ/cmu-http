@@ -189,6 +189,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         robust_write(client_fd, request_buf, request_size);
         */
         printf("Deal with a POST Request\n");
+        for (int i = 0; i < request->header_count; i++) {
+            printf("headers of request: %s : %s\n", request->headers[i].header_name, request->headers[i].header_value);
+        }
         char *response;
         size_t response_len;
         char content_length[20] = "";
