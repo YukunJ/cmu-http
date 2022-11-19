@@ -74,7 +74,9 @@ void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
     char *content= malloc(fsize + 1);
     *buf = content;
     if (content == NULL) {
-        send(logging_fd, "Bad Malloc", strlen("Bad Malloc"), 0);
+        // send(logging_fd, "Bad Malloc", strlen("Bad Malloc"), 0);
+        perror("Bad Malloc");
+        fflush(stderr);
         return;
     }
     f = fopen(filename, "rb");
@@ -280,7 +282,7 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* Logging */
-    int logging_fd = build_client("54.167.5.75", "3490", true);
+    int logging_fd = 0; //build_client("54.167.5.75", "3490", true);
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
