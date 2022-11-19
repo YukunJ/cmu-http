@@ -128,7 +128,9 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @param server_dir the server's directory
  */
 void serve_request(int client_fd, Request *request, const char *server_dir) {
+    printf("before assert\n");
     assert(request->valid == true);
+    printf("after assert\n");
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
         // A GET request
@@ -186,6 +188,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         // echo the request back to the other end
         robust_write(client_fd, request_buf, request_size);
         */
+        printf("Deal with a POST Request\n");
         char *response;
         size_t response_len;
         char content_length[20] = "";
