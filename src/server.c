@@ -62,6 +62,7 @@ void load_file(const char *filename, char **buf, size_t *size) {
     f = fopen(filename, "rb");
 
 
+    // TODO: free this buf
     char *content= malloc(fsize + 1);
     fread(content, 1, fsize, f);
     content[fsize] = '\0';
@@ -78,6 +79,7 @@ void load_file(const char *filename, char **buf, size_t *size) {
  * @param size pointer to how length of the extension
  */
 void verify_extension(const char *filename, char **buf, size_t *size) {
+    // TODO: free this buf
     size_t filename_len = strlen(filename);
     char *last_dot = strrchr(filename, '.');
     if (last_dot == NULL) {
@@ -177,6 +179,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                                     last_modified, file_size, file_content, should_close);
             // send the response to the other end
             robust_write(client_fd, response, response_len);
+            free(extension);
+            free(file_content);
+            free(response);
         } else {
             // file not exist
         }

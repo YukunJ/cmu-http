@@ -492,9 +492,6 @@ ssize_t robust_write(int fd, const void *buf, const size_t len) {
     const char *buf_next = (const char *)buf;
     while (curr_write != total_write) {
         size_t write_size = len - curr_write;
-        // if (write_size > buf_size) {
-            // write_size = buf_size;
-        // }
         if ((write = send(fd, buf_next, write_size, flag)) <= 0) {
             if (errno != EINTR || errno != EAGAIN) {
                 return -1;
