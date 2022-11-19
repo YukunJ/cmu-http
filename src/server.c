@@ -33,7 +33,7 @@
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define LOGGING_BUF_SIZE 1024
-#define FILE_BUF_SIZE (1024 * 1024 * 10)
+#define FILE_BUF_SIZE (1024 * 1024)
 
 /**
  * @brief helper function to check if
