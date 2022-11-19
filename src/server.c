@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
 
     /* Logging */
 //    int logging_fd = build_client("54.167.5.75", "3490", true);
-
+    int logging_fd = 0;
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
