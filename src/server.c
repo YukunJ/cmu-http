@@ -189,18 +189,23 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         robust_write(client_fd, request_buf, request_size);
         */
         printf("Deal with a POST Request\n");
-        for (int i = 0; i < request->header_count; i++) {
-            printf("headers of request: %s : %s\n", request->headers[i].header_name, request->headers[i].header_value);
-        }
         char *response;
         size_t response_len;
         char content_length[20] = "";
+        int content_length_index = -1;
+        for (int i = 0; i < request->header_count; i++) {
+            if (strcasecmp(request->headers[i].header_name, "Content-Length") == 0) {
+                content_length_index = i;
+            }
+            printf("headers of request: %s : %s\n", request->headers[i].header_name, request->headers[i].header_value);
+        }
         if (request->body == NULL) {
             serialize_http_response(&response, &response_len, OK, OCTET_MIME, ZERO,
                                     NULL, 0, request->body);
         } else {
-            snprintf(content_length, sizeof(content_length), "%zu", strlen(request->body));
-            serialize_http_response(&response, &response_len, OK, OCTET_MIME, content_length,
+            //snprintf(content_length, sizeof(content_length), "%zu", strlen(request->body));
+            serialize_http_response(&response, &response_len, OK, OCTET_MIME,
+                                    request->headers[content_length_index].header_name,
                                     NULL, strlen(request->body), request->body);
         }
         // send the response to the other end
