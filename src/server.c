@@ -154,6 +154,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             // load the file into memory
             size_t file_size;
             load_filesize(whole_path, &file_size);
+            printf("The load filesize is %zu\n", file_size);
             // check the extension type of the file
             char *extension;
             size_t extension_size;
@@ -170,17 +171,21 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
 
             char *response;
             size_t response_len;
+            printf("before serialize_http_response\n");
             serialize_http_response(&response, &response_len, OK, extension, content_length,
                                     last_modified, 0, NULL, should_close);
+            printf("after serialize_http_response\n");
             // send the response header to the other end
             robust_write(client_fd, response, response_len);
             free(extension);
             free(response);
             // send the actual content of the file
+            printf("About to open file %s\n", whole_path);
             FILE *f = fopen(whole_path, "rb");
             char file_buf[FILE_BUF_SIZE];
             memset(file_buf, 0, sizeof(file_buf));
             size_t curr_read = 0;
+            printf("After init file buffer\n");
             while (curr_read < file_size) {
                 size_t num_read = file_size - curr_read;
                 if (num_read > FILE_BUF_SIZE) {
@@ -189,7 +194,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                 fread(file_buf, sizeof(char), num_read, f);
                 curr_read += num_read;
                 robust_write(client_fd, file_buf, num_read);
+                printf("num read: %ul\n", num_read);
             }
+            printf("Finished sending the body of %s\n", whole_path);
             fclose(f);
         } else {
             // file not exist
