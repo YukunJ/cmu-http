@@ -94,6 +94,7 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
         *size = strlen(OCTET_MIME);
         *buf = (char *)malloc(*size);
         memcpy(*buf, OCTET_MIME, *size);
+        return;
     }
     size_t last_dot_idx = filename - last_dot;
     size_t extension_len = filename_len - last_dot_idx - 1;

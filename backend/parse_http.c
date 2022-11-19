@@ -183,9 +183,18 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
     strftime(date, 4096, "%a, %d %b %Y %H:%M:%S %Z", now_tm);
 
     size_t date_len = strlen(date);
-    size_t content_type_len = content_type == NULL ? 0 : strlen(content_type);
-    size_t content_length_len = content_length == NULL ? 0 : strlen(content_length);
-    size_t last_modified_len = last_modified == NULL ? 0 : strlen(last_modified);
+    size_t content_type_len = 0;
+    if (content_type != NULL) {
+        content_type_len = strlen(content_type);
+    }
+    size_t content_length_len = 0;
+    if (content_length != NULL) {
+        content_length_len = strlen(content_length);
+    }
+    size_t last_modified_len = 0;
+    if (last_modified != NULL) {
+        last_modified_len = strlen(last_modified);
+    }
 
     size_t prepopulated_len = strlen(prepopulated_headers);
     size_t msg_len;
