@@ -98,8 +98,8 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
     }
     size_t last_dot_idx = filename - last_dot;
     size_t extension_len = filename_len - last_dot_idx - 1;
-    char extension[BUF_SIZE];
-    memset(extension, 0, sizeof(extension));
+    char extension[BUF_SIZE] = "";
+    //memset(extension, 0, sizeof(extension));
     memcpy(extension, filename + last_dot_idx + 1, extension_len);
     if (strcmp(extension, HTML_EXT) == 0) {
         *size = strlen(HTML_MIME);
