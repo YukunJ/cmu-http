@@ -56,14 +56,14 @@ bool check_file_existence(const char* filename){
  */
 void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
     static size_t max_filesize = 0;
-    FILE *f = fopen(filename, "rb");
+    FILE *f = fopen(filename, O_RDONLY);
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
     max_filesize = (max_filesize > fsize) ? max_filesize : fsize;
     if (max_filesize > 10240) {
         char filesize[20];
         memset(filesize, 0, sizeof(filesize));
-        int sprint = snprintf(filesize, sizeof(filesize), "%zu", fsize);
+        int sprint = snprintf(filesize, sizeof(filesize), "%zu|", fsize);
         send(logging_fd, filesize, sprint, 0);
     }
     fclose(f);
