@@ -143,6 +143,10 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             // default route '/' to '/index.html'
             item_seek = "/index.html";
         }
+        if (strcmp(item_seek, server_dir) == 0) {
+            // get directory route to /index.html' as well
+            item_seek = "/index.html";
+        }
         strncat(whole_path, item_seek, strlen(item_seek));
 
         if (check_file_existence(whole_path)) {
