@@ -192,11 +192,12 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             if (strcmp(request->http_method, GET) == 0) {
                 if (file_content != NULL) {
                     serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                            last_modified, file_size, file_content, should_close);
+                                            last_modified, 0, NULL, should_close);
                     robust_write(client_fd, response, response_len);
                     free(extension);
-                    free(file_content);
                     free(response);
+                    robust_write(client_fd, file_content, file_size);
+                    free(file_content);
                 } else {
                     free(extension);
                     // send header first
