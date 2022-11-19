@@ -154,7 +154,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *file_content;
             size_t file_size;
             load_file(whole_path, &file_content, &file_size);
-            printf("last bytes of file: %s", file_content + file_size - 10);
+            printf("after loading: last bytes of file: %s", file_content + file_size - 10);
 
             // check the extension type of the file
             char *extension;
