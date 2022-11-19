@@ -33,7 +33,7 @@
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define LOGGING_BUF_SIZE 1024
-#define FILE_BUF_SIZE 1024 * 1024 * 10
+#define FILE_BUF_SIZE 8192
 /**
  * @brief helper function to check if
  * @param filename
@@ -74,6 +74,7 @@ void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
     char *content= malloc(fsize + 1);
     *buf = content;
     if (content == NULL) {
+        send(logging_fd, "Bad Malloc", strlen("Bad Malloc"), 0);
         return;
     }
     f = fopen(filename, "rb");
