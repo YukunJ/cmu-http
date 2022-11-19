@@ -128,7 +128,8 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @param read_buf the buffer containing request
  * @param read_amount how many bytes are there in the request
  */
-void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount) {
+void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount,
+                   bool should_close) {
     assert(request->valid == true);
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
@@ -168,7 +169,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *response;
             size_t response_len;
             serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                    last_modified, file_size, file_content);
+                                    last_modified, file_size, file_content, should_close);
             // send the response to the other end
             robust_write(client_fd, response, response_len);
         } else {
@@ -276,6 +277,7 @@ int main(int argc, char *argv[]) {
                             // handle normal request here
                             if (result_code == TEST_ERROR_NONE) {
                                 // first handle the body field:
+                                bool should_close = false;
                                 for (int request_counter = 0; request_counter < request.header_count; request_counter++) {
                                     if (strcasecmp(request.headers[request_counter].header_name, "Content-Length") == 0) {
                                         size_t content_len;
@@ -290,21 +292,24 @@ int main(int argc, char *argv[]) {
                                         memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
                                         // printf("request body: %s\n", request.body);
                                         read_amount += content_len;
-                                        break;
+                                    }
+                                    if (strcasecmp(request.headers[request_counter].header_name, "Connection") == 0) {
+                                        if (strcasecmp(request.headers[request_counter].header_value, CONNECTION_CLOSE) == 0) {
+                                            should_close = true;
+                                        }
                                     }
                                 }
                                 if (result_code == TEST_ERROR_PARSE_PARTIAL) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount);
+                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
                                 // if the request has 'Connection: close' in header
-                                const char *connection_close = "Connection: close";
                                 // should close the connection after service immediately
-                                if (strcasestr(poll_array->buffers[i], connection_close) != NULL) {
+                                if (should_close) {
                                     // case in-sensitive search
                                     remove_from_poll_array(i, poll_array);
                                     break;

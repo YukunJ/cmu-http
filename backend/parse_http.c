@@ -175,7 +175,7 @@ test_error_code_t serialize_http_request(char *buffer, size_t *size, Request *re
  * Given a char buffer returns the parsed request headers
  */
 test_error_code_t serialize_http_response(char **msg, size_t *len, const char *prepopulated_headers, char *content_type,
-                   char *content_length, char *last_modified, size_t body_len, char *body) {
+                   char *content_length, char *last_modified, size_t body_len, char *body, bool should_close) {
     char date[4096];
     time_t now;
     time(&now);
@@ -188,10 +188,19 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
     size_t last_modified_len = last_modified == NULL ? 0 : strlen(last_modified);
 
     size_t prepopulated_len = strlen(prepopulated_headers);
-    size_t msg_len = prepopulated_len + strlen(HTTP_VER) + 1
-                     + strlen(CONNECTION) + strlen(CONNECTION_VAL) + strlen(CRLF)
-                     + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
-                     + strlen(DATE) + date_len + strlen(CRLF);
+    size_t msg_len;
+    if (!should_close) {
+        msg_len = prepopulated_len + strlen(HTTP_VER) + 1
+                         + strlen(CONNECTION) + strlen(CONNECTION_VAL) + strlen(CRLF)
+                         + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
+                         + strlen(DATE) + date_len + strlen(CRLF);
+    } else {
+        msg_len = prepopulated_len + strlen(HTTP_VER) + 1
+                         + strlen(CONNECTION) + strlen(CONNECTION_CLOSE) + strlen(CRLF)
+                         + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
+                         + strlen(DATE) + date_len + strlen(CRLF);
+    }
+
     if (content_type != NULL) {
         msg_len += strlen(CONTENT_TYPE) + content_type_len + strlen(CRLF);
     }
@@ -221,7 +230,11 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
     cur_len += prepopulated_len;
 
     // Standard headers
-    cur_len += populate_header(*msg + cur_len, CONNECTION, strlen(CONNECTION), CONNECTION_VAL, strlen(CONNECTION_VAL));
+    if (!should_close) {
+        cur_len += populate_header(*msg + cur_len, CONNECTION, strlen(CONNECTION), CONNECTION_VAL, strlen(CONNECTION_VAL));
+    } else {
+        cur_len += populate_header(*msg + cur_len, CONNECTION, strlen(CONNECTION), CONNECTION_CLOSE, strlen(CONNECTION_CLOSE));
+    }
     cur_len += populate_header(*msg + cur_len, SERVER, strlen(SERVER), SERVER_VAL, strlen(SERVER_VAL));
     cur_len += populate_header(*msg + cur_len, DATE, strlen(DATE), date, date_len);
     if (content_type != NULL) {
