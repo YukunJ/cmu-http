@@ -214,6 +214,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         printf("The strlen(response)=%zu\n", strlen(response));
         printf("The real response_len=%zu\n", response_len);
         robust_write(client_fd, response, response_len);
+        printf("finish writing\n");
     }
 
 }
