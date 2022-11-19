@@ -234,6 +234,7 @@ int main(int argc, char *argv[]) {
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
     while (true) {
+        printf("while (true)\n");
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
         if (ready_count > 0) {
             // some socket fds are ready to be read
