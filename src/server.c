@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
                                         // read from the buffer to update body
                                         request.body = (char *) malloc(sizeof(char) * content_len);
                                         memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
-                                        printf("request body: %s\n", request.body);
+                                        // printf("request body: %s\n", request.body);
                                         read_amount += content_len;
                                         break;
                                     }
