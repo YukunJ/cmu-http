@@ -319,9 +319,8 @@ int main(int argc, char *argv[]) {
                                         }
                                         // read from the buffer to update body
                                         request.body = (char *) malloc(sizeof(char) * content_len);
-                                        printf("poll_array->buffers[i] + read_amount + 1 is %s\n", poll_array->buffers[i] + read_amount + 1);
-                                        printf("poll_array->buffers[i] + read_amount is %s\n", poll_array->buffers[i] + read_amount);
                                         memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
+                                        printf("request body: %s\n", request.body);
                                         read_amount += content_len;
                                         break;
                                     }
@@ -347,6 +346,7 @@ int main(int argc, char *argv[]) {
                                 // TODO: handle malformed request
                             }
                             if (read_amount == poll_array->sizes[i]) {
+                                printf("read everything from the buffer\n");
                                 poll_array->sizes[i] = 0;
                                 free(poll_array->buffers[i]);
                                 poll_array->buffers[i] = NULL;
