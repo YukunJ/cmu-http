@@ -190,6 +190,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         // echo the request back to the other end
         robust_write(client_fd, request_buf, request_size);
         */
+        /*
         printf("Deal with a POST Request\n");
         char *response;
         size_t response_len;
@@ -218,6 +219,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         printf("The real response_len=%zu\n", response_len);
         robust_write(client_fd, response, response_len);
         printf("finish writing\n");
+        */
         /*
         printf("Deal with a POST Request\n");
         char *response;
@@ -230,6 +232,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         robust_write(client_fd, response, response_len);
         printf("finish writing\n");
         */
+        printf("Deal with a POST Request\n");
+        robust_write(client_fd, read_buf, read_amount);
+        printf("finish writing\n");
     }
 
 }
