@@ -145,9 +145,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                    bool should_close, int logging_fd) {
     assert(request->valid == true);
     // #TODO: add error checking before serving
-    if (strcmp(request->http_method, GET) == 0) {
+    if (strcmp(request->http_method, GET) == 0 || strcmp(request->http_method, HEAD) == 0) {
         // A GET request
-        printf("Deal with a GET method\n");
+        printf("Deal with a GET / HEAD method\n");
         char *item_seek = request->http_uri;
         /* Logging */
         char whole_path[BUF_SIZE];
@@ -191,8 +191,14 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
 
             char *response;
             size_t response_len;
-            serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                    last_modified, file_size, file_content, should_close);
+            if (strcmp(request->http_method, GET) == 0) {
+                serialize_http_response(&response, &response_len, OK, extension, content_length,
+                                        last_modified, file_size, file_content, should_close);
+            } else {
+                // HEAD Method
+                serialize_http_response(&response, &response_len, OK, extension, content_length,
+                                        last_modified, 0, NULL, should_close);
+            }
             // send the response to the other end
             robust_write(client_fd, response, response_len);
             free(extension);
@@ -207,9 +213,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             robust_write(client_fd, response, response_len);
             free(response);
         }
-
-    } else if (strcmp(request->http_method, HEAD) == 0) {
-        // A HEAD request
     } else if (strcmp(request->http_method, POST) == 0) {
         /**
         A POST request, echo back the whole request directly
