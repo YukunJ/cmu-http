@@ -54,10 +54,15 @@ bool check_file_existence(const char* filename){
  * @param buf the pointer to a buf, the buf to be allocated in this func
  * @param size the pointer to size_t indicating how many bytes are loaded from the file
  */
-void load_file(const char *filename, char **buf, size_t *size) {
+void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
+    static size_t max_filesize = 0;
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
+    max_filesize = (max_filesize > fsize) ? max_filesize : fsize;
+    char filesize [20];
+    snprintf(filesize, sizeof(filesize), "%zu", fsize);
+    send(logging_fd, filesize, strlen(filesize), 0);
     fclose(f);
     f = fopen(filename, "rb");
 
@@ -158,7 +163,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             // load the file into memory
             char *file_content;
             size_t file_size;
-            load_file(whole_path, &file_content, &file_size);
+            load_file(whole_path, &file_content, &file_size, logging_fd);
             // check the extension type of the file
             char *extension;
             size_t extension_size;
@@ -228,13 +233,11 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* Logging */
-    // int logging_fd = build_client("54.167.5.75", "3490", true);
-    int logging_fd = 0;
+    int logging_fd = build_client("54.167.5.75", "3490", true);
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
     while (true) {
-        printf("while (true)\n");
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
         if (ready_count > 0) {
             // some socket fds are ready to be read
