@@ -54,36 +54,12 @@ bool check_file_existence(const char* filename){
  * @param buf the pointer to a buf, the buf to be allocated in this func
  * @param size the pointer to size_t indicating how many bytes are loaded from the file
  */
-void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
-    static size_t max_filesize = 0;
+void load_filesize(const char *filename, size_t *size) {
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
     *size = fsize;
-    max_filesize = (max_filesize > fsize) ? max_filesize : fsize;
-//    if (max_filesize > 10240) {
-//        char filesize[20];
-//        memset(filesize, 0, sizeof(filesize));
-//        int sprint = snprintf(filesize, sizeof(filesize), "%zu|", fsize);
-//        send(logging_fd, filesize, sprint, 0);
-//    }
     fclose(f);
-
-
-    // TODO: free this buf
-    char *content= malloc(fsize + 1);
-    *buf = content;
-    if (content == NULL) {
-        // send(logging_fd, "Bad Malloc", strlen("Bad Malloc"), 0);
-        perror("Bad Malloc");
-        fflush(stderr);
-        return;
-    }
-    f = fopen(filename, "rb");
-    fread(content, 1, fsize, f);
-    content[fsize] = '\0';
-    fclose(f);
-
 }
 
 /**
@@ -170,9 +146,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         if (check_file_existence(whole_path)) {
             // the requested file do exist
             // load the file into memory
-            char *file_content;
+            // char *file_content;
             size_t file_size;
-            load_file(whole_path, &file_content, &file_size, logging_fd);
+            load_filesize(whole_path, &file_size);
             // check the extension type of the file
             char *extension;
             size_t extension_size;
@@ -190,41 +166,21 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *response;
             size_t response_len;
             if (strcmp(request->http_method, GET) == 0) {
-                if (file_content != NULL) {
-                    serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                            last_modified, 0, NULL, should_close);
-                    robust_write(client_fd, response, response_len);
-                    free(extension);
-                    free(response);
-                    robust_write(client_fd, file_content, file_size);
-                    free(file_content);
-                } else {
-                    free(extension);
-                    // send header first
-                    /*
-                    serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                            last_modified, 0, NULL, should_close);
-                    robust_write(client_fd, response, response_len);
-                    free(extension);
-                    free(response);
-                    // file too big
-                    // send the actual content of the file chunk by chunk
-                    FILE *f = fopen(whole_path, "rb");
-                    char *file_buf = calloc(FILE_BUF_SIZE, sizeof(char));
-                    size_t curr_read = 0;
-                    while (curr_read < file_size) {
-                        size_t num_read = file_size - curr_read;
-                        if (num_read > FILE_BUF_SIZE) {
-                            num_read = FILE_BUF_SIZE;
-                        }
-                        num_read = fread(file_buf, sizeof(char), num_read, f);
-                        curr_read += num_read;
-                        robust_write(client_fd, file_buf, num_read);
-                    }
-                    free(file_buf);
-                    fclose(f);
-                    */
+                serialize_http_response(&response, &response_len, OK, extension, content_length,
+                                        last_modified, 0, NULL, should_close);
+                robust_write(client_fd, response, response_len);
+                free(extension);
+                free(response);
+
+                FILE *f = fopen(whole_path, "rb");
+                char *file_buf = calloc(FILE_BUF_SIZE, sizeof(char));
+                size_t curr_read = 0;
+                while (curr_read < file_size) {
+                    size_t num_read = fread(file_buf, sizeof(char), FILE_BUF_SIZE, f);
+                    curr_read += num_read;
+                    robust_write(client_fd, file_buf, num_read);
                 }
+                free(file_buf);
             } else {
                 // HEAD Method
                 serialize_http_response(&response, &response_len, OK, extension, content_length,
@@ -232,9 +188,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                 // send the response to the other end
                 robust_write(client_fd, response, response_len);
                 free(extension);
-                if (file_content != NULL) {
-                    free(file_content);
-                }
                 free(response);
             }
         } else {
