@@ -170,8 +170,8 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             free(response);
             // send the actual content of the file
             FILE *f = fopen(whole_path, "rb");
-            char file_buf[FILE_BUF_SIZE];
-            memset(file_buf, 0, sizeof(file_buf));
+            char * file_buf = (char *) malloc(sizeof(char) * FILE_BUF_SIZE);
+            memset(file_buf, 0, FILE_BUF_SIZE);
             size_t curr_read = 0;
             while (curr_read < file_size) {
                 size_t num_read = file_size - curr_read;
@@ -182,6 +182,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                 curr_read += num_read;
                 robust_write(client_fd, file_buf, num_read);
             }
+            free(file_buf);
             fclose(f);
         } else {
             // file not exist
