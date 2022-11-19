@@ -355,6 +355,7 @@ int main(int argc, char *argv[]) {
                                 robust_write(ready_fd, response, response_len);
                                 free(response);
                                 remove_from_poll_array(i, poll_array);
+                                break;
                             }
                             if (read_amount == poll_array->sizes[i]) {
                                 printf("read everything from the buffer\n");
