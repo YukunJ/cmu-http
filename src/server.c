@@ -309,6 +309,7 @@ int main(int argc, char *argv[]) {
                                         sscanf(request.headers[request_counter].header_value, "%zu", &content_len);
                                         if (content_len + read_amount > poll_array->sizes[i]) {
                                             result_code = TEST_ERROR_PARSE_PARTIAL;
+                                            break;
                                         }
                                         // read from the buffer to update body
                                         request.body = (char *) malloc(sizeof(char) * content_len);
