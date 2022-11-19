@@ -57,15 +57,14 @@ void load_file(const char *filename, char **buf, size_t *size) {
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
-    fseek(f, 0, SEEK_SET);  /* back to beginning */
+    fclose(f);
+    f = fopen(filename, "rb");
 
     printf("The file %s we are able to server is %zu bytes in total\n", filename, fsize);
 
-    char *content= malloc(fsize + 1);
-    fread(content, fsize, 1, f);
+    char *content= malloc(fsize);
+    fread(content, 1, fsize, f);
     fclose(f);
-
-    content[fsize] = 0;
 
     *buf = content;
     *size = fsize;
@@ -183,58 +182,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         // A HEAD request
     } else if (strcmp(request->http_method, POST) == 0) {
         /**
-        // A POST request, echo back the whole request directly
-        char request_buf[BUF_SIZE];
-        size_t request_size;
-        serialize_http_request(request_buf, &request_size, request);
-        // echo the request back to the other end
-        robust_write(client_fd, request_buf, request_size);
+        A POST request, echo back the whole request directly
         */
-        /*
-        printf("Deal with a POST Request\n");
-        char *response;
-        size_t response_len;
-        int content_length_index = -1;
-        for (int i = 0; i < request->header_count; i++) {
-            if (strcasecmp(request->headers[i].header_name, "Content-Length") == 0) {
-                content_length_index = i;
-            }
-            printf("headers of request: %s : %s\n", request->headers[i].header_name, request->headers[i].header_value);
-        }
-        if (request->body == NULL) {
-            serialize_http_response(&response, &response_len, OK, OCTET_MIME, ZERO,
-                                    NULL, 0, request->body);
-        } else {
-            //snprintf(content_length, sizeof(content_length), "%zu", strlen(request->body));
-            size_t body_len = 0;
-            sscanf(request->headers[content_length_index].header_value, "%zu", &body_len);
-            serialize_http_response(&response, &response_len, OK, OCTET_MIME,
-                                    request->headers[content_length_index].header_value,
-                                    NULL, body_len, request->body);
-        }
-        // send the response to the other end
-        printf("The response to the POST request is as follows:\n");
-        printf("%s\n", response);
-        printf("The strlen(response)=%zu\n", strlen(response));
-        printf("The real response_len=%zu\n", response_len);
-        robust_write(client_fd, response, response_len);
-        printf("finish writing\n");
-        */
-        /*
-        printf("Deal with a POST Request\n");
-        char *response;
-        size_t response_len;
-        char content_length[20];
-        sprintf(content_length, "%d", read_amount);
-        serialize_http_response(&response, &response_len, OK, OCTET_MIME,
-                                content_length,
-                                NULL, read_amount, read_buf);
-        robust_write(client_fd, response, response_len);
-        printf("finish writing\n");
-        */
-        printf("Deal with a POST Request\n");
         robust_write(client_fd, read_buf, read_amount);
-        printf("finish writing\n");
     }
 
 }
