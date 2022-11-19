@@ -62,8 +62,10 @@ void load_file(const char *filename, char **buf, size_t *size) {
 
     printf("The file %s we are able to server is %zu bytes in total\n", filename, fsize);
 
-    char *content= malloc(fsize);
+    char *content= malloc(fsize + 1);
     fread(content, 1, fsize, f);
+    content[fsize] = '\0';
+    printf("The last 10 chars of the file to serve is [%s]\n", &content[fsize-10]);
     fclose(f);
 
     *buf = content;
@@ -152,6 +154,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *file_content;
             size_t file_size;
             load_file(whole_path, &file_content, &file_size);
+            printf("last bytes of file: %s", file_content + file_size - 10);
 
             // check the extension type of the file
             char *extension;
