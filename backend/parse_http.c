@@ -486,7 +486,7 @@ ssize_t robust_read(int fd, void *buf, const size_t len) {
  */
 ssize_t robust_write(int fd, const void *buf, const size_t len) {
     static size_t buf_size = 8192; // one-time write buffer size
-    static int flag = 0;  // most of cases
+    static int flag = MSG_DONTWAIT;  // most of cases
     ssize_t write;
     ssize_t total_write = len;
     ssize_t curr_write = 0;
