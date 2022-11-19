@@ -141,9 +141,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         char whole_path[BUF_SIZE];
         memset(whole_path, 0, sizeof(whole_path));
         memcpy(whole_path, server_dir, strlen(server_dir));
-        if (strcmp(item_seek, "/big.html") == 0) {
-            send(logging_fd, "want to get /big.html\n", strlen("want to get /big.html\n"), 0);
-        }
         if (strcmp(item_seek, "/") == 0) {
             // default route '/' to '/index.html'
             item_seek = "/index.html";
@@ -155,17 +152,11 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         strncat(whole_path, item_seek, strlen(item_seek));
 
         if (check_file_existence(whole_path)) {
-            if (strcmp(item_seek, "/big.html") == 0) {
-                send(logging_fd, "/big.html does exist\n", strlen("/big.html does exist\n"), 0);
-            }
             // the requested file do exist
             // load the file into memory
             char *file_content;
             size_t file_size;
             load_file(whole_path, &file_content, &file_size);
-            if (strcmp(item_seek, "/big.html") == 0) {
-                send(logging_fd, "/big.html loaded into memory\n", strlen("/big.html loaded into memory\n"), 0);
-            }
             // check the extension type of the file
             char *extension;
             size_t extension_size;
@@ -185,13 +176,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             serialize_http_response(&response, &response_len, OK, extension, content_length,
                                     last_modified, file_size, file_content, should_close);
             // send the response to the other end
-            if (strcmp(item_seek, "/big.html") == 0) {
-                send(logging_fd, "/big.html before robust write\n", strlen("/big.html before robust write\n"), 0);
-            }
             robust_write(client_fd, response, response_len);
-            if (strcmp(item_seek, "/big.html") == 0) {
-                send(logging_fd, "/big.html after robust write\n", strlen("/big.html after robust write\n"), 0);
-            }
         } else {
             // file not exist
         }
@@ -238,7 +223,8 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* Logging */
-    int logging_fd = build_client("54.167.5.75", "3490", true);
+    // int logging_fd = build_client("54.167.5.75", "3490", true);
+    int logging_fd = 0;
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
