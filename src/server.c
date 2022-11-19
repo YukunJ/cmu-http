@@ -179,8 +179,8 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             printf("About to open file %s\n", whole_path);
             fflush(stdout);
             FILE *f = fopen(whole_path, "rb");
-            char file_buf[FILE_BUF_SIZE];
-            memset(file_buf, 0, sizeof(file_buf));
+            char *file_buf = malloc(FILE_BUF_SIZE);
+            memset(file_buf, 0, FILE_BUF_SIZE);
             size_t curr_read = 0;
             printf("After init file buffer\n");
             fflush(stdout);
@@ -195,6 +195,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                 printf("num read: %ul\n", num_read);
                 fflush(stdout);
             }
+            free(file_buf);
             printf("Finished sending the body of %s\n", whole_path);
             fflush(stdout);
             fclose(f);
