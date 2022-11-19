@@ -206,6 +206,8 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         // send the response to the other end
         printf("The response to the POST request is as follows:\n");
         printf("%s\n", response);
+        printf("The strlen(response)=%zu\n", strlen(response));
+        printf("The real response_len=%zu\n", response_len);
         robust_write(client_fd, response, response_len);
     }
 
