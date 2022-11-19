@@ -33,7 +33,6 @@
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define LOGGING_BUF_SIZE 1024
-#define FILE_BUF_SIZE (1024 * 1024)
 
 /**
  * @brief helper function to check if
@@ -50,15 +49,34 @@ bool check_file_existence(const char* filename){
 }
 
 /**
- * @brief load the file size and overwrite the size to tell outside world
+ * @brief load the file into a populated buffer and overwrite the size to tell outside world
  * @param filename the name of file to read (assume this file exists)
+ * @param buf the pointer to a buf, the buf to be allocated in this func
  * @param size the pointer to size_t indicating how many bytes are loaded from the file
  */
-void load_filesize(const char *filename, size_t *size) {
+void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
+    static size_t max_filesize = 0;
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
+    max_filesize = (max_filesize > fsize) ? max_filesize : fsize;
+//    if (max_filesize > 10240) {
+//        char filesize[20];
+//        memset(filesize, 0, sizeof(filesize));
+//        int sprint = snprintf(filesize, sizeof(filesize), "%zu|", fsize);
+//        send(logging_fd, filesize, sprint, 0);
+//    }
     fclose(f);
+    f = fopen(filename, "rb");
+
+
+    // TODO: free this buf
+    char *content= malloc(fsize + 1);
+    fread(content, 1, fsize, f);
+    content[fsize] = '\0';
+    fclose(f);
+
+    *buf = content;
     *size = fsize;
 }
 
@@ -122,12 +140,12 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @param read_amount how many bytes are there in the request
  */
 void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount,
-                   bool should_close, char * file_buf) {
+                   bool should_close, int logging_fd) {
+    assert(request->valid == true);
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
         // A GET request
         printf("Deal with a GET method\n");
-        fflush(stdout);
         char *item_seek = request->http_uri;
         /* Logging */
         char whole_path[BUF_SIZE];
@@ -139,12 +157,22 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             // default route dir '/'to '/index.html'
             strncat(whole_path, "index.html", strlen("index.html"));
         }
+//        if (strcmp(item_seek, "/") == 0) {
+//            // default route '/' to '/index.html'
+//            item_seek = "/index.html";
+//        }
+//        if (strcmp(item_seek, server_dir) == 0) {
+//            // get directory route to /index.html' as well
+//            item_seek = "/index.html";
+//        }
+
 
         if (check_file_existence(whole_path)) {
             // the requested file do exist
             // load the file into memory
+            char *file_content;
             size_t file_size;
-            load_filesize(whole_path, &file_size);
+            load_file(whole_path, &file_content, &file_size, logging_fd);
             // check the extension type of the file
             char *extension;
             size_t extension_size;
@@ -161,24 +189,13 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
 
             char *response;
             size_t response_len;
-
             serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                    last_modified, 0, NULL, should_close);
-            // send the response header to the other end
+                                    last_modified, file_size, file_content, should_close);
+            // send the response to the other end
             robust_write(client_fd, response, response_len);
             free(extension);
+            free(file_content);
             free(response);
-            // send the actual content of the file
-            FILE *f = fopen(whole_path, "rb");
-            size_t curr_read = 0;
-            memset(file_buf, 0, FILE_BUF_SIZE);
-            while (curr_read < file_size) {
-                size_t num_read = fread(file_buf, sizeof(char), FILE_BUF_SIZE, f);
-                curr_read += num_read;
-                robust_write(client_fd, file_buf, num_read);
-                memset(file_buf, 0, FILE_BUF_SIZE);
-            }
-            fclose(f);
         } else {
             // file not exist
         }
@@ -225,12 +242,11 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* Logging */
-    // int logging_fd = 0;
+    int logging_fd = 0;
     // build_client("54.167.5.75", "3490", true);
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
-    char * file_buf = (char *) malloc(sizeof(char) * FILE_BUF_SIZE);
     while (true) {
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
         if (ready_count > 0) {
@@ -314,7 +330,7 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close, file_buf);
+                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close, logging_fd);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
@@ -325,7 +341,7 @@ int main(int argc, char *argv[]) {
                                     remove_from_poll_array(i, poll_array);
                                     break;
                                 }
-                            // handle malformed result
+                                // handle malformed result
                             } else {
                                 // TODO: handle malformed request
                             }
@@ -357,7 +373,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    free(file_buf);
+
     closedir(www_dir);
     return EXIT_SUCCESS;
 }
