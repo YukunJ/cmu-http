@@ -253,8 +253,7 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* Logging */
-    int logging_fd = 0;
-    // build_client("54.167.5.75", "3490", true);
+    int logging_fd = build_client("54.167.5.75", "3490", true);
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
@@ -363,6 +362,7 @@ int main(int argc, char *argv[]) {
 //                                                        NULL, 0, NULL, true);
 //                                robust_write(ready_fd, response, response_len);
 //                                free(response);
+                                send(logging_fd, "Failed Parse", strlen("Failed Parse"), 0);
                                 const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\n";
                                 robust_write(ready_fd, bad_request_char, strlen(bad_request_char));
                                 remove_from_poll_array(i, poll_array);
