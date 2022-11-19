@@ -13,14 +13,14 @@
 void trim_whitespace(char *str, size_t str_len) {
     size_t i = 0;
 
-    while (isspace(str[i]) && str[i] != '\0') {
+    while (isspace(str[i]) && str[i] != '\0' && i < str_len) {
         i++;
     }
     // First non whitespace char
     size_t firstCharInd = i;
 
     i = str_len - 1;
-    while (isspace(str[i])) {
+    while (isspace(str[i]) && i > 0) {
         i--;
     }
     // First whitespace char
