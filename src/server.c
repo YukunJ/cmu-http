@@ -154,7 +154,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *file_content;
             size_t file_size;
             load_file(whole_path, &file_content, &file_size);
-            printf("after loading: last bytes of file: %s", file_content + file_size - 10);
+            printf("after loading: last bytes of file: %s\n", file_content + file_size - 10);
 
             // check the extension type of the file
             char *extension;
@@ -175,6 +175,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             serialize_http_response(&response, &response_len, OK, extension, content_length,
             ctime(&attr.st_mtime), file_size, file_content);
 
+            printf("after loading: last bytes of response: %s\n", response + response_len - 10);
             // send the response to the other end
             robust_write(client_fd, response, response_len);
         } else {
