@@ -188,7 +188,7 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
     size_t last_modified_len = last_modified == NULL ? 0 : strlen(last_modified);
 
     size_t prepopulated_len = strlen(prepopulated_headers);
-    size_t msg_len = prepopulated_len + strlen(HTTP_VER)
+    size_t msg_len = prepopulated_len + strlen(HTTP_VER) + 1
                      + strlen(CONNECTION) + strlen(CONNECTION_VAL) + strlen(CRLF)
                      + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
                      + strlen(DATE) + date_len + strlen(CRLF);
@@ -239,7 +239,7 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
                                    last_modified_len);
     }
     memcpy(*msg + cur_len, CRLF, strlen(CRLF));
-    cur_len += strlen(CRLF);
+    cur_len += 1;
 
     if (body != NULL) {
         memcpy(*msg + cur_len, body, body_len);
