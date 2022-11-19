@@ -211,7 +211,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                         if (num_read > FILE_BUF_SIZE) {
                             num_read = FILE_BUF_SIZE;
                         }
-                        fread(file_buf, sizeof(char), num_read, f);
+                        num_read = fread(file_buf, sizeof(char), num_read, f);
                         curr_read += num_read;
                         robust_write(client_fd, file_buf, num_read);
                     }
