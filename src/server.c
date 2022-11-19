@@ -175,7 +175,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             serialize_http_response(&response, &response_len, OK, extension, content_length,
             ctime(&attr.st_mtime), file_size, file_content);
 
-            printf("response: %s\n\n", response);
+            printf("response:\n %s\n", response);
             // send the response to the other end
             robust_write(client_fd, response, response_len);
         } else {
