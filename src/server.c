@@ -33,6 +33,7 @@
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define LOGGING_BUF_SIZE 1024
+#define FILE_BUF_SIZE (1024 * 1024 * 10)
 
 /**
  * @brief helper function to check if
@@ -49,34 +50,15 @@ bool check_file_existence(const char* filename){
 }
 
 /**
- * @brief load the file into a populated buffer and overwrite the size to tell outside world
+ * @brief load the file size and overwrite the size to tell outside world
  * @param filename the name of file to read (assume this file exists)
- * @param buf the pointer to a buf, the buf to be allocated in this func
  * @param size the pointer to size_t indicating how many bytes are loaded from the file
  */
-void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
-    static size_t max_filesize = 0;
+void load_filesize(const char *filename, size_t *size) {
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
-    max_filesize = (max_filesize > fsize) ? max_filesize : fsize;
-//    if (max_filesize > 10240) {
-//        char filesize[20];
-//        memset(filesize, 0, sizeof(filesize));
-//        int sprint = snprintf(filesize, sizeof(filesize), "%zu|", fsize);
-//        send(logging_fd, filesize, sprint, 0);
-//    }
     fclose(f);
-    f = fopen(filename, "rb");
-
-
-    // TODO: free this buf
-    char *content= malloc(fsize + 1);
-    fread(content, 1, fsize, f);
-    content[fsize] = '\0';
-    fclose(f);
-
-    *buf = content;
     *size = fsize;
 }
 
@@ -170,9 +152,8 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         if (check_file_existence(whole_path)) {
             // the requested file do exist
             // load the file into memory
-            char *file_content;
             size_t file_size;
-            load_file(whole_path, &file_content, &file_size, logging_fd);
+            load_filesize(whole_path, &file_size);
             // check the extension type of the file
             char *extension;
             size_t extension_size;
@@ -190,12 +171,26 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *response;
             size_t response_len;
             serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                    last_modified, file_size, file_content, should_close);
-            // send the response to the other end
+                                    last_modified, 0, NULL, should_close);
+            // send the response header to the other end
             robust_write(client_fd, response, response_len);
             free(extension);
-            free(file_content);
             free(response);
+            // send the actual content of the file
+            FILE *f = fopen(whole_path, "rb");
+            char file_buf[FILE_BUF_SIZE];
+            memset(file_buf, 0, sizeof(file_buf));
+            size_t curr_read = 0;
+            while (curr_read < file_size) {
+                size_t num_read = file_size - curr_read;
+                if (num_read > FILE_BUF_SIZE) {
+                    num_read = FILE_BUF_SIZE;
+                }
+                fread(file_buf, sizeof(char), num_read, f);
+                curr_read += num_read;
+                robust_write(client_fd, file_buf, num_read);
+            }
+            fclose(f);
         } else {
             // file not exist
         }
