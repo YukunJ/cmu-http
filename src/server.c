@@ -126,8 +126,10 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @param client_fd the client's socket descriptor
  * @param request pointer to a successfully parsed
  * @param server_dir the server's directory
+ * @param read_buf the buffer containing request
+ * @param read_amount how many bytes are there in the request
  */
-void serve_request(int client_fd, Request *request, const char *server_dir) {
+void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount) {
     printf("before assert\n");
     assert(request->valid == true);
     printf("after assert\n");
@@ -188,10 +190,10 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         // echo the request back to the other end
         robust_write(client_fd, request_buf, request_size);
         */
+        /**
         printf("Deal with a POST Request\n");
         char *response;
         size_t response_len;
-        char content_length[20] = "";
         int content_length_index = -1;
         for (int i = 0; i < request->header_count; i++) {
             if (strcasecmp(request->headers[i].header_name, "Content-Length") == 0) {
@@ -213,6 +215,17 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         printf("%s\n", response);
         printf("The strlen(response)=%zu\n", strlen(response));
         printf("The real response_len=%zu\n", response_len);
+        robust_write(client_fd, response, response_len);
+        printf("finish writing\n");
+        */
+        printf("Deal with a POST Request\n");
+        char *response;
+        size_t response_len;
+        char content_length[20];
+        sprintf(content_length, "%d", read_amount);
+        serialize_http_response(&response, &response_len, OK, OCTET_MIME,
+                                content_length,
+                                NULL, read_amount, read_buf);
         robust_write(client_fd, response, response_len);
         printf("finish writing\n");
     }
@@ -317,6 +330,7 @@ int main(int argc, char *argv[]) {
                                             result_code = TEST_ERROR_PARSE_PARTIAL;
                                             break;
                                         }
+                                        // the request is full
                                         // read from the buffer to update body
                                         request.body = (char *) malloc(sizeof(char) * content_len);
                                         memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
@@ -329,7 +343,7 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                serve_request(ready_fd, &request, www_folder);
+                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
