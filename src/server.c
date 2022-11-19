@@ -33,7 +33,7 @@
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define LOGGING_BUF_SIZE 1024
-
+#define FILE_BUF_SIZE 1024 * 1024
 /**
  * @brief helper function to check if
  * @param filename
@@ -59,6 +59,7 @@ void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
+    *size = fsize;
     max_filesize = (max_filesize > fsize) ? max_filesize : fsize;
 //    if (max_filesize > 10240) {
 //        char filesize[20];
@@ -67,17 +68,19 @@ void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
 //        send(logging_fd, filesize, sprint, 0);
 //    }
     fclose(f);
-    f = fopen(filename, "rb");
 
 
     // TODO: free this buf
     char *content= malloc(fsize + 1);
+    *buf = content;
+    if (content == NULL) {
+        return;
+    }
+    f = fopen(filename, "rb");
     fread(content, 1, fsize, f);
     content[fsize] = '\0';
     fclose(f);
 
-    *buf = content;
-    *size = fsize;
 }
 
 /**
@@ -159,14 +162,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             // default route dir '/'to '/index.html'
             strncat(whole_path, "index.html", strlen("index.html"));
         }
-//        if (strcmp(item_seek, "/") == 0) {
-//            // default route '/' to '/index.html'
-//            item_seek = "/index.html";
-//        }
-//        if (strcmp(item_seek, server_dir) == 0) {
-//            // get directory route to /index.html' as well
-//            item_seek = "/index.html";
-//        }
 
 
         if (check_file_existence(whole_path)) {
@@ -192,18 +187,50 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *response;
             size_t response_len;
             if (strcmp(request->http_method, GET) == 0) {
-                serialize_http_response(&response, &response_len, OK, extension, content_length,
-                                        last_modified, file_size, file_content, should_close);
+                if (file_content != NULL) {
+                    serialize_http_response(&response, &response_len, OK, extension, content_length,
+                                            last_modified, file_size, file_content, should_close);
+                    robust_write(client_fd, response, response_len);
+                    free(extension);
+                    free(file_content);
+                    free(response);
+                } else {
+                    // send header first
+                    serialize_http_response(&response, &response_len, OK, extension, content_length,
+                                            last_modified, 0, NULL, should_close);
+                    robust_write(client_fd, response, response_len);
+                    free(extension);
+                    free(response);
+                    // file too big
+                    // send the actual content of the file chunk by chunk
+                    FILE *f = fopen(whole_path, "rb");
+                    char *file_buf = malloc(FILE_BUF_SIZE);
+                    memset(file_buf, 0, FILE_BUF_SIZE);
+                    size_t curr_read = 0;
+                    while (curr_read < file_size) {
+                        size_t num_read = file_size - curr_read;
+                        if (num_read > FILE_BUF_SIZE) {
+                            num_read = FILE_BUF_SIZE;
+                        }
+                        fread(file_buf, sizeof(char), num_read, f);
+                        curr_read += num_read;
+                        robust_write(client_fd, file_buf, num_read);
+                    }
+                    free(file_buf);
+                    fclose(f);
+                }
             } else {
                 // HEAD Method
                 serialize_http_response(&response, &response_len, OK, extension, content_length,
                                         last_modified, 0, NULL, should_close);
+                // send the response to the other end
+                robust_write(client_fd, response, response_len);
+                free(extension);
+                if (file_content != NULL) {
+                    free(file_content);
+                }
+                free(response);
             }
-            // send the response to the other end
-            robust_write(client_fd, response, response_len);
-            free(extension);
-            free(file_content);
-            free(response);
         } else {
             // handle file not found
             char *response;
