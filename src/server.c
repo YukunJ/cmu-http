@@ -198,7 +198,9 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                     free(file_content);
                     free(response);
                 } else {
+                    free(extension);
                     // send header first
+                    /*
                     serialize_http_response(&response, &response_len, OK, extension, content_length,
                                             last_modified, 0, NULL, should_close);
                     robust_write(client_fd, response, response_len);
@@ -220,6 +222,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                     }
                     free(file_buf);
                     fclose(f);
+                    */
                 }
             } else {
                 // HEAD Method
