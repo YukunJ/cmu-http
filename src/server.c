@@ -171,15 +171,12 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             // send the actual content of the file
             FILE *f = fopen(whole_path, "rb");
             size_t curr_read = 0;
+            memset(file_buf, 0, FILE_BUF_SIZE);
             while (curr_read < file_size) {
-                // memset(file_buf, 0, FILE_BUF_SIZE);
-                size_t num_read = file_size - curr_read;
-                if (num_read > FILE_BUF_SIZE) {
-                    num_read = FILE_BUF_SIZE;
-                }
-                fread(file_buf, sizeof(char), num_read, f);
+                size_t num_read = fread(file_buf, sizeof(char), FILE_BUF_SIZE, f);
                 curr_read += num_read;
                 robust_write(client_fd, file_buf, num_read);
+                memset(file_buf, 0, FILE_BUF_SIZE);
             }
             fclose(f);
         } else {
