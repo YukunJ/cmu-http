@@ -42,7 +42,7 @@ char *OK = "200 OK\r\n";
 char *NOT_FOUND = "404 Not Found\r\n";
 char *SERVICE_UNAVAILABLE = "503 Service Unavailable\r\n";
 char *BAD_REQUEST = "400 Bad Request\r\n";
-
+char *BAD_REQUEST_SHORT = "400\r\n";
 /* MIME TYPES */
 char *HTML_EXT = "html";
 char *HTML_MIME = "text/html";
