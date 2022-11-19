@@ -254,6 +254,7 @@ int populate_header(char *msg, char *field, const size_t field_len, char *val, c
     memcpy(msg, field, field_len);
     memcpy(msg + field_len, val, val_len);
     memcpy(msg + field_len + val_len, CRLF, strlen(CRLF));
+    printf("header is: %s", msg);
     return field_len + val_len + strlen(CRLF);
 }
 
