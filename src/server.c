@@ -298,10 +298,25 @@ int main(int argc, char *argv[]) {
                                                                            &request, &read_amount);
                         while (poll_array->sizes[i] > 0 &&
                                (result_code == TEST_ERROR_NONE || result_code == TEST_ERROR_PARSE_FAILED)) {
+                            // first handle the body field:
+                            for (int i = 0; i < request.header_count; i++) {
+                                if (strcasecmp(request.headers[i].header_name, "Content-Length") == 0) {
+                                    size_t content_len;
+                                    sscanf(request.headers[i].header_value, "%zu", &content_len);
+                                    // read from the buffer to update body
+                                    request.body = (char *) malloc(sizeof(char) * content_len);
+                                    memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
+                                    read_amount += content_len;
+                                    break;
+                                }
+                            }
                             // handle normal request here
                             if (result_code == TEST_ERROR_NONE) {
                                 printf("Parsed a full request, about to serve_request()\n");
                                 serve_request(ready_fd, &request, www_folder);
+                                if (request.body != NULL) {
+                                    free(request.body);
+                                }
                                 // if the request has 'Connection: close' in header
                                 const char *connection_close = "connection: close";
                                 // should close the connection after service immediately
