@@ -123,7 +123,11 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  */
 void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount,
                    bool should_close, int logging_fd) {
+    printf("Entering serve_request\n");
+    fflush(stdout);
     assert(request->valid == true);
+    printf("After assert\n");
+    fflush(stdout);
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
         // A GET request
