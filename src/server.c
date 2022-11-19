@@ -56,16 +56,16 @@ bool check_file_existence(const char* filename){
  */
 void load_file(const char *filename, char **buf, size_t *size, int logging_fd) {
     static size_t max_filesize = 0;
-    FILE *f = fopen(filename, O_RDONLY);
+    FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
     size_t fsize = ftell(f);
     max_filesize = (max_filesize > fsize) ? max_filesize : fsize;
-    if (max_filesize > 10240) {
-        char filesize[20];
-        memset(filesize, 0, sizeof(filesize));
-        int sprint = snprintf(filesize, sizeof(filesize), "%zu|", fsize);
-        send(logging_fd, filesize, sprint, 0);
-    }
+//    if (max_filesize > 10240) {
+//        char filesize[20];
+//        memset(filesize, 0, sizeof(filesize));
+//        int sprint = snprintf(filesize, sizeof(filesize), "%zu|", fsize);
+//        send(logging_fd, filesize, sprint, 0);
+//    }
     fclose(f);
     f = fopen(filename, "rb");
 
@@ -151,15 +151,21 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         char whole_path[BUF_SIZE];
         memset(whole_path, 0, sizeof(whole_path));
         memcpy(whole_path, server_dir, strlen(server_dir));
-        if (strcmp(item_seek, "/") == 0) {
-            // default route '/' to '/index.html'
-            item_seek = "/index.html";
-        }
-        if (strcmp(item_seek, server_dir) == 0) {
-            // get directory route to /index.html' as well
-            item_seek = "/index.html";
-        }
         strncat(whole_path, item_seek, strlen(item_seek));
+        size_t whole_path_len = strlen(whole_path);
+        if (whole_path[whole_path_len-1] == '/') {
+            // default route dir '/'to '/index.html'
+            strncat(whole_path, "index.html", strlen("index.html"));
+        }
+//        if (strcmp(item_seek, "/") == 0) {
+//            // default route '/' to '/index.html'
+//            item_seek = "/index.html";
+//        }
+//        if (strcmp(item_seek, server_dir) == 0) {
+//            // get directory route to /index.html' as well
+//            item_seek = "/index.html";
+//        }
+
 
         if (check_file_existence(whole_path)) {
             // the requested file do exist
@@ -236,7 +242,8 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* Logging */
-    int logging_fd = build_client("54.167.5.75", "3490", true);
+    int logging_fd = 0;
+    // build_client("54.167.5.75", "3490", true);
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
