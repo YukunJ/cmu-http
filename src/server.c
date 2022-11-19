@@ -33,7 +33,7 @@
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define LOGGING_BUF_SIZE 1024
-#define FILE_BUF_SIZE 1024 * 1024
+#define FILE_BUF_SIZE 1024 * 1024 * 10
 /**
  * @brief helper function to check if
  * @param filename
@@ -204,8 +204,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                     // file too big
                     // send the actual content of the file chunk by chunk
                     FILE *f = fopen(whole_path, "rb");
-                    char *file_buf = malloc(FILE_BUF_SIZE);
-                    memset(file_buf, 0, FILE_BUF_SIZE);
+                    char *file_buf = calloc(FILE_BUF_SIZE, sizeof(char));
                     size_t curr_read = 0;
                     while (curr_read < file_size) {
                         size_t num_read = file_size - curr_read;
