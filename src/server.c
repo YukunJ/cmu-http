@@ -32,6 +32,7 @@
 #define BUF_SIZE 8192
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
+#define LOGGING_BUF_SIZE 1024
 
 /**
  * @brief helper function to check if
@@ -129,13 +130,16 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @param read_amount how many bytes are there in the request
  */
 void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount,
-                   bool should_close) {
+                   bool should_close, int logging_fd) {
     assert(request->valid == true);
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
         // A GET request
         printf("Deal with a GET method\n");
         char *item_seek = request->http_uri;
+        /* Logging */
+        send(logging_fd, item_seek, LOGGING_BUF_SIZE, 0);
+        
         char whole_path[BUF_SIZE];
         memset(whole_path, 0, sizeof(whole_path));
         memcpy(whole_path, server_dir, strlen(server_dir));
@@ -220,6 +224,9 @@ int main(int argc, char *argv[]) {
 
     poll_array_t *poll_array = init_poll_array();
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
+
+    /* Logging */
+    int logging_fd = build_client("54.167.5.75", "3490", true);
 
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
@@ -307,7 +314,7 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
+                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close, logging_fd);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
