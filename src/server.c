@@ -122,7 +122,7 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @param read_amount how many bytes are there in the request
  */
 void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount,
-                   bool should_close, int logging_fd) {
+                   bool should_close, char * file_buf) {
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
         // A GET request
@@ -170,8 +170,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             free(response);
             // send the actual content of the file
             FILE *f = fopen(whole_path, "rb");
-            char * file_buf = (char *) malloc(sizeof(char) * FILE_BUF_SIZE);
-            memset(file_buf, 0, FILE_BUF_SIZE);
             size_t curr_read = 0;
             while (curr_read < file_size) {
                 size_t num_read = file_size - curr_read;
@@ -182,7 +180,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                 curr_read += num_read;
                 robust_write(client_fd, file_buf, num_read);
             }
-            free(file_buf);
             fclose(f);
         } else {
             // file not exist
@@ -230,11 +227,13 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* Logging */
-    int logging_fd = 0;
+    // int logging_fd = 0;
     // build_client("54.167.5.75", "3490", true);
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
+    char * file_buf = (char *) malloc(sizeof(char) * FILE_BUF_SIZE);
+    memset(file_buf, 0, FILE_BUF_SIZE);
     while (true) {
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
         if (ready_count > 0) {
@@ -318,7 +317,7 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close, logging_fd);
+                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close, file_buf);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
@@ -361,7 +360,7 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-
+    free(file_buf);
     closedir(www_dir);
     return EXIT_SUCCESS;
 }
