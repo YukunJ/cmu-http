@@ -190,7 +190,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         // echo the request back to the other end
         robust_write(client_fd, request_buf, request_size);
         */
-        /**
         printf("Deal with a POST Request\n");
         char *response;
         size_t response_len;
@@ -206,9 +205,11 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                                     NULL, 0, request->body);
         } else {
             //snprintf(content_length, sizeof(content_length), "%zu", strlen(request->body));
+            size_t body_len = 0;
+            sscanf(request->headers[content_length_index].header_value, "%zu", &body_len);
             serialize_http_response(&response, &response_len, OK, OCTET_MIME,
                                     request->headers[content_length_index].header_value,
-                                    NULL, strlen(request->body), request->body);
+                                    NULL, body_len, request->body);
         }
         // send the response to the other end
         printf("The response to the POST request is as follows:\n");
@@ -217,7 +218,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         printf("The real response_len=%zu\n", response_len);
         robust_write(client_fd, response, response_len);
         printf("finish writing\n");
-        */
+        /*
         printf("Deal with a POST Request\n");
         char *response;
         size_t response_len;
@@ -228,6 +229,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
                                 NULL, read_amount, read_buf);
         robust_write(client_fd, response, response_len);
         printf("finish writing\n");
+        */
     }
 
 }
