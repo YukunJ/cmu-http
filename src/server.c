@@ -178,12 +178,23 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
     } else if (strcmp(request->http_method, HEAD) == 0) {
         // A HEAD request
     } else if (strcmp(request->http_method, POST) == 0) {
+        /**
         // A POST request, echo back the whole request directly
         char request_buf[BUF_SIZE];
         size_t request_size;
         serialize_http_request(request_buf, &request_size, request);
         // echo the request back to the other end
         robust_write(client_fd, request_buf, request_size);
+        */
+        char *response;
+        size_t response_len;
+        char content_length[20] = "";
+        snprintf(content_length, sizeof(content_length), "%zu", strlen(request->body));
+        serialize_http_response(&response, &response_len, OK, OCTET_MIME, content_length,
+                                NULL, strlen(request->body), request->body);
+
+        // send the response to the other end
+        robust_write(client_fd, response, response_len);
     }
 
 }
