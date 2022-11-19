@@ -190,7 +190,8 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         char *response;
         size_t response_len;
         char content_length[20] = "";
-        printf("before getting content_length");
+        printf("before getting content_length\n");
+        printf("body: %s\n", request->body);
         snprintf(content_length, sizeof(content_length), "%zu", strlen(request->body));
         printf("before serializing response\n");
         serialize_http_response(&response, &response_len, OK, OCTET_MIME, content_length,
