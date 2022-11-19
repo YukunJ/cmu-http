@@ -96,39 +96,40 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
         memcpy(*buf, OCTET_MIME, *size);
         return;
     }
-    size_t last_dot_idx = filename - last_dot;
-    size_t extension_len = filename_len - last_dot_idx - 1;
+
+    size_t last_dot_idx = strlen(filename) - strlen(last_dot);
+    size_t extension_len = strlen(last_dot) - 1;
     char extension[BUF_SIZE] = "";
     //memset(extension, 0, sizeof(extension));
     memcpy(extension, filename + last_dot_idx + 1, extension_len);
     if (strcmp(extension, HTML_EXT) == 0) {
         *size = strlen(HTML_MIME);
-        *buf = (char *)malloc(*size);
+        *buf = (char *)malloc(*size + 1);
         memcpy(*buf, HTML_MIME, *size);
     }
     if (strcmp(extension, CSS_EXT) == 0) {
         *size = strlen(CSS_MIME);
-        *buf = (char *)malloc(*size);
+        *buf = (char *)malloc(*size + 1);
         memcpy(*buf, CSS_MIME, *size);
     }
     if (strcmp(extension, PNG_EXT) == 0) {
         *size = strlen(PNG_MIME);
-        *buf = (char *)malloc(*size);
+        *buf = (char *)malloc(*size + 1);
         memcpy(*buf, PNG_MIME, *size);
     }
     if (strcmp(extension, JPG_EXT) == 0) {
         *size = strlen(JPG_MIME);
-        *buf = (char *)malloc(*size);
+        *buf = (char *)malloc(*size + 1);
         memcpy(*buf, JPG_MIME, *size);
     }
     if (strcmp(extension, GIF_EXT) == 0) {
         *size = strlen(GIF_MIME);
-        *buf = (char *)malloc(*size);
+        *buf = (char *)malloc(*size + 1);
         memcpy(*buf, GIF_MIME, *size);
     }
     // default unknown extension
     *size = strlen(OCTET_MIME);
-    *buf = (char *)malloc(*size);
+    *buf = (char *)malloc(*size + 1);
     memcpy(*buf, OCTET_MIME, *size);
 }
 
