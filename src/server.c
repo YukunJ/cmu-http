@@ -138,7 +138,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
         printf("Deal with a GET method\n");
         char *item_seek = request->http_uri;
         /* Logging */
-        int sent = send(logging_fd, item_seek, LOGGING_BUF_SIZE, 0);
+        int sent = send(logging_fd, item_seek, strlen(item_seek), 0);
         printf("Sent  = %d\n", sent);
         char whole_path[BUF_SIZE];
         memset(whole_path, 0, sizeof(whole_path));
