@@ -313,14 +313,16 @@ int main(int argc, char *argv[]) {
                                     if (strcasecmp(request.headers[request_counter].header_name, "Content-Length") == 0) {
                                         size_t content_len;
                                         sscanf(request.headers[request_counter].header_value, "%zu", &content_len);
-                                        if (content_len + read_amount > poll_array->sizes[i]) {
+                                        if (content_len + read_amount + 1 > poll_array->sizes[i]) {
                                             result_code = TEST_ERROR_PARSE_PARTIAL;
                                             break;
                                         }
                                         // read from the buffer to update body
                                         request.body = (char *) malloc(sizeof(char) * content_len);
-                                        memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
-                                        read_amount += content_len;
+                                        printf("poll_array->buffers[i] + read_amount + 1 is %s\n", poll_array->buffers[i] + read_amount + 1);
+                                        printf("poll_array->buffers[i] + read_amount is %s\n", poll_array->buffers[i] + read_amount);
+                                        memcpy(request.body, poll_array->buffers[i] + read_amount + 1, content_len);
+                                        read_amount += content_len + 1;
                                         break;
                                     }
                                 }
@@ -336,7 +338,7 @@ int main(int argc, char *argv[]) {
                                 const char *connection_close = "connection: close";
                                 // should close the connection after service immediately
                                 if (strcasestr(poll_array->buffers[i], connection_close) != NULL) {
-                                    // case insensitive search
+                                    // case in-sensitive search
                                     remove_from_poll_array(i, poll_array);
                                     break;
                                 }
