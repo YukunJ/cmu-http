@@ -299,8 +299,10 @@ int main(int argc, char *argv[]) {
                         int read_amount;
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                                                            &request, &read_amount);
-                        while (poll_array->sizes[i] > 0 &&
-                               (result_code == TEST_ERROR_NONE || result_code == TEST_ERROR_PARSE_FAILED)) {
+                        while (poll_array->sizes[i] > 0) {
+                            if (result_code == TEST_ERROR_PARSE_PARTIAL) {
+                                break;
+                            }
                             // handle normal request here
                             if (result_code == TEST_ERROR_NONE) {
                                 // first handle the body field:
@@ -342,7 +344,7 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 // handle malformed result
-                            } else {
+                            } else if (result_code == TEST_ERROR_PARSE_FAILED){
                                 // TODO: handle malformed request
                                 char *response;
                                 size_t response_len;
@@ -351,7 +353,6 @@ int main(int argc, char *argv[]) {
                                 robust_write(ready_fd, response, response_len);
                                 free(response);
                                 remove_from_poll_array(i, poll_array);
-                                break;
                             }
                             if (read_amount == poll_array->sizes[i]) {
                                 printf("read everything from the buffer\n");
