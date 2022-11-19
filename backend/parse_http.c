@@ -238,8 +238,8 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
         cur_len += populate_header(*msg + cur_len, LAST_MODIFIED, strlen(CONTENT_TYPE), last_modified,
                                    last_modified_len);
     }
-    memcpy(*msg + cur_len, CRLF, strlen(CRLF));
-    cur_len += 1;
+    //memcpy(*msg + cur_len, CRLF, strlen(CRLF));
+    //cur_len += 1;
 
     if (body != NULL) {
         memcpy(*msg + cur_len, body, body_len);
