@@ -173,7 +173,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *response;
             size_t response_len;
             serialize_http_response(&response, &response_len, OK, extension, content_length,
-            ctime(&attr.st_mtime), file_size, file_content);
+                                    last_modified, file_size, file_content);
 
             printf("response:\n %s\n", response);
             // send the response to the other end

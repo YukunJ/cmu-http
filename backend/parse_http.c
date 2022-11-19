@@ -234,10 +234,10 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
         cur_len += populate_header(*msg + cur_len, CONTENT_LENGTH, strlen(CONTENT_LENGTH), ZERO,
                                    strlen(ZERO));
     }
-//    if (last_modified != NULL) {
-//        cur_len += populate_header(*msg + cur_len, LAST_MODIFIED, strlen(CONTENT_TYPE), last_modified,
-//                                   last_modified_len);
-//    }
+    if (last_modified != NULL) {
+        cur_len += populate_header(*msg + cur_len, LAST_MODIFIED, strlen(CONTENT_TYPE), last_modified,
+                                   last_modified_len);
+    }
     memcpy(*msg + cur_len, CRLF, strlen(CRLF));
     cur_len += strlen(CRLF);
     printf("CRLF length: %d\n", strlen(CRLF));
