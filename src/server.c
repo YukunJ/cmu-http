@@ -172,7 +172,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             FILE *f = fopen(whole_path, "rb");
             size_t curr_read = 0;
             while (curr_read < file_size) {
-                memset(file_buf, 0, FILE_BUF_SIZE);
+                // memset(file_buf, 0, FILE_BUF_SIZE);
                 size_t num_read = file_size - curr_read;
                 if (num_read > FILE_BUF_SIZE) {
                     num_read = FILE_BUF_SIZE;
