@@ -299,10 +299,10 @@ int main(int argc, char *argv[]) {
                         while (poll_array->sizes[i] > 0 &&
                                (result_code == TEST_ERROR_NONE || result_code == TEST_ERROR_PARSE_FAILED)) {
                             // first handle the body field:
-                            for (int i = 0; i < request.header_count; i++) {
-                                if (strcasecmp(request.headers[i].header_name, "Content-Length") == 0) {
+                            for (int request_counter = 0; request_counter < request.header_count; request_counter++) {
+                                if (strcasecmp(request.headers[request_counter].header_name, "Content-Length") == 0) {
                                     size_t content_len;
-                                    sscanf(request.headers[i].header_value, "%zu", &content_len);
+                                    sscanf(request.headers[request_counter].header_value, "%zu", &content_len);
                                     // read from the buffer to update body
                                     request.body = (char *) malloc(sizeof(char) * content_len);
                                     memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
