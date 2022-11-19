@@ -363,7 +363,7 @@ int main(int argc, char *argv[]) {
 //                                robust_write(ready_fd, response, response_len);
 //                                free(response);
                                 send(logging_fd, "Failed Parse", strlen("Failed Parse"), 0);
-                                const char *bad_request_char = "HTTP/1.1 400\r\n";
+                                const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\n\r\n";
                                 robust_write(ready_fd, bad_request_char, strlen(bad_request_char));
                                 remove_from_poll_array(i, poll_array);
                                 break;
