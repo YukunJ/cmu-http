@@ -33,7 +33,7 @@
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define LOGGING_BUF_SIZE 1024
-#define FILE_BUF_SIZE (1024 * 1024)
+#define FILE_BUF_SIZE (1024 * 1024 * 10)
 
 /**
  * @brief helper function to check if
@@ -172,6 +172,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             FILE *f = fopen(whole_path, "rb");
             size_t curr_read = 0;
             while (curr_read < file_size) {
+                memset(file_buf, 0, FILE_BUF_SIZE);
                 size_t num_read = file_size - curr_read;
                 if (num_read > FILE_BUF_SIZE) {
                     num_read = FILE_BUF_SIZE;
@@ -233,7 +234,6 @@ int main(int argc, char *argv[]) {
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
     char * file_buf = (char *) malloc(sizeof(char) * FILE_BUF_SIZE);
-    memset(file_buf, 0, FILE_BUF_SIZE);
     while (true) {
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
         if (ready_count > 0) {
