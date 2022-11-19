@@ -485,17 +485,16 @@ ssize_t robust_read(int fd, void *buf, const size_t len) {
  * @return ssize_t how many bytes written, or -1 if any error happens
  */
 ssize_t robust_write(int fd, const void *buf, const size_t len) {
-    static size_t buf_size = 8192; // one-time write buffer size
-    static int flag = MSG_DONTWAIT;  // most of cases
+    static int flag = 0;  // most of cases
     ssize_t write;
     ssize_t total_write = len;
     ssize_t curr_write = 0;
     const char *buf_next = (const char *)buf;
     while (curr_write != total_write) {
         size_t write_size = len - curr_write;
-        if (write_size > buf_size) {
-            write_size = buf_size;
-        }
+        // if (write_size > buf_size) {
+            // write_size = buf_size;
+        // }
         if ((write = send(fd, buf_next, write_size, flag)) <= 0) {
             if (errno != EINTR || errno != EAGAIN) {
                 return -1;
