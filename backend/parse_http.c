@@ -240,7 +240,7 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
     }
     memcpy(*msg + cur_len, CRLF, strlen(CRLF));
     cur_len += strlen(CRLF);
-    printf("\n\n\n\nCRLF length: %d\n", strlen(CRLF));
+    printf("CRLF length: %d\n", strlen(CRLF));
 
     if (body != NULL) {
         memcpy(*msg + cur_len, body, body_len);
