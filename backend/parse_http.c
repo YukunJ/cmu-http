@@ -584,7 +584,8 @@ void remove_from_poll_array(int remove_idx, poll_array_t *array) {
 
     array->count -= 1;
     if (array->count < array->capacity / shrink_criteria) {
-        // allocated space shrinkage needed
+        // allocated space shrinkage
+        // needed
         array->capacity /= shrink_factor;
         array->pfds = (struct pollfd *)realloc(
                 array->pfds, array->capacity * sizeof(struct pollfd));

@@ -199,7 +199,13 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             free(file_content);
             free(response);
         } else {
-            // file not exist
+            // handle file not found
+            char *response;
+            size_t response_len;
+            serialize_http_response(&response, &response_len, NOT_FOUND, NULL, NULL,
+                                    NULL, 0, NULL, false);
+            robust_write(client_fd, response, response_len);
+            free(response);
         }
 
     } else if (strcmp(request->http_method, HEAD) == 0) {
