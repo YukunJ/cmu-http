@@ -60,12 +60,10 @@ void load_file(const char *filename, char **buf, size_t *size) {
     fclose(f);
     f = fopen(filename, "rb");
 
-    printf("The file %s we are able to server is %zu bytes in total\n", filename, fsize);
 
     char *content= malloc(fsize + 1);
     fread(content, 1, fsize, f);
     content[fsize] = '\0';
-    printf("The last 10 chars of the file to serve is [%s]\n", &content[fsize-10]);
     fclose(f);
 
     *buf = content;
@@ -131,9 +129,7 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @param read_amount how many bytes are there in the request
  */
 void serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount) {
-    printf("before assert\n");
     assert(request->valid == true);
-    printf("after assert\n");
     // #TODO: add error checking before serving
     if (strcmp(request->http_method, GET) == 0) {
         // A GET request
@@ -154,7 +150,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *file_content;
             size_t file_size;
             load_file(whole_path, &file_content, &file_size);
-            printf("after loading: last bytes of file: %s\n", file_content + file_size - 10);
 
             // check the extension type of the file
             char *extension;
@@ -174,8 +169,6 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             size_t response_len;
             serialize_http_response(&response, &response_len, OK, extension, content_length,
                                     last_modified, file_size, file_content);
-
-            printf("response:\n %s\n", response);
             // send the response to the other end
             robust_write(client_fd, response, response_len);
         } else {

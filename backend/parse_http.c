@@ -240,7 +240,6 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
     }
     memcpy(*msg + cur_len, CRLF, strlen(CRLF));
     cur_len += strlen(CRLF);
-    printf("CRLF length: %d\n", strlen(CRLF));
 
     if (body != NULL) {
         memcpy(*msg + cur_len, body, body_len);
@@ -254,7 +253,6 @@ int populate_header(char *msg, char *field, const size_t field_len, char *val, c
     memcpy(msg, field, field_len);
     memcpy(msg + field_len, val, val_len);
     memcpy(msg + field_len + val_len, CRLF, strlen(CRLF));
-    printf("header is: %s", msg);
     return field_len + val_len + strlen(CRLF);
 }
 
