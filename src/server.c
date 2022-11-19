@@ -357,12 +357,14 @@ int main(int argc, char *argv[]) {
                                 // handle malformed result
                             } else if (result_code == TEST_ERROR_PARSE_FAILED){
                                 // TODO: handle malformed request
-                                char *response;
-                                size_t response_len;
-                                serialize_http_response(&response, &response_len, BAD_REQUEST, NULL, NULL,
-                                                        NULL, 0, NULL, true);
-                                robust_write(ready_fd, response, response_len);
-                                free(response);
+//                                char *response;
+//                                size_t response_len;
+//                                serialize_http_response(&response, &response_len, BAD_REQUEST, NULL, NULL,
+//                                                        NULL, 0, NULL, true);
+//                                robust_write(ready_fd, response, response_len);
+//                                free(response);
+                                const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\n";
+                                robust_write(ready_fd, bad_request_char, strlen(bad_request_char));
                                 remove_from_poll_array(i, poll_array);
                                 break;
                             }
