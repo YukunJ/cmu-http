@@ -205,7 +205,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir) {
         } else {
             //snprintf(content_length, sizeof(content_length), "%zu", strlen(request->body));
             serialize_http_response(&response, &response_len, OK, OCTET_MIME,
-                                    request->headers[content_length_index].header_name,
+                                    request->headers[content_length_index].header_value,
                                     NULL, strlen(request->body), request->body);
         }
         // send the response to the other end
