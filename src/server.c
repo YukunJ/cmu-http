@@ -300,20 +300,26 @@ int main(int argc, char *argv[]) {
                                                                            &request, &read_amount);
                         while (poll_array->sizes[i] > 0 &&
                                (result_code == TEST_ERROR_NONE || result_code == TEST_ERROR_PARSE_FAILED)) {
-                            // first handle the body field:
-                            for (int request_counter = 0; request_counter < request.header_count; request_counter++) {
-                                if (strcasecmp(request.headers[request_counter].header_name, "Content-Length") == 0) {
-                                    size_t content_len;
-                                    sscanf(request.headers[request_counter].header_value, "%zu", &content_len);
-                                    // read from the buffer to update body
-                                    request.body = (char *) malloc(sizeof(char) * content_len);
-                                    memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
-                                    read_amount += content_len;
-                                    break;
-                                }
-                            }
                             // handle normal request here
                             if (result_code == TEST_ERROR_NONE) {
+                                // first handle the body field:
+                                for (int request_counter = 0; request_counter < request.header_count; request_counter++) {
+                                    if (strcasecmp(request.headers[request_counter].header_name, "Content-Length") == 0) {
+                                        size_t content_len;
+                                        sscanf(request.headers[request_counter].header_value, "%zu", &content_len);
+                                        if (content_len + read_amount > poll_array->sizes[i]) {
+                                            result_code = TEST_ERROR_PARSE_PARTIAL;
+                                        }
+                                        // read from the buffer to update body
+                                        request.body = (char *) malloc(sizeof(char) * content_len);
+                                        memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
+                                        read_amount += content_len;
+                                        break;
+                                    }
+                                }
+                                if (result_code == TEST_ERROR_PARSE_PARTIAL) {
+                                    break;
+                                }
                                 printf("Parsed a full request, about to serve_request()\n");
                                 serve_request(ready_fd, &request, www_folder);
                                 if (request.body != NULL) {
