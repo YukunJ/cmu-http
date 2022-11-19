@@ -175,7 +175,7 @@ void serve_request(int client_fd, Request *request, const char *server_dir, cons
             serialize_http_response(&response, &response_len, OK, extension, content_length,
             ctime(&attr.st_mtime), file_size, file_content);
 
-            printf("after loading: last bytes of response: %s\n", response + response_len - 10);
+            printf("response: %s\n\n", response);
             // send the response to the other end
             robust_write(client_fd, response, response_len);
         } else {
@@ -309,7 +309,7 @@ int main(int argc, char *argv[]) {
                                     free(request.body);
                                 }
                                 // if the request has 'Connection: close' in header
-                                const char *connection_close = "connection: close";
+                                const char *connection_close = "Connection: close";
                                 // should close the connection after service immediately
                                 if (strcasestr(poll_array->buffers[i], connection_close) != NULL) {
                                     // case in-sensitive search
