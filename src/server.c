@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
                         int read_amount;
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                                                            &request, &read_amount);
-                        while (poll_array->sizes[i] > 0) {
+                        if (poll_array->sizes[i] > 0) {
                             if (result_code == TEST_ERROR_PARSE_PARTIAL) {
                                 break;
                             } else if (result_code == TEST_ERROR_NONE) {
