@@ -277,6 +277,7 @@ int main(int argc, char *argv[]) {
                         int new_client_fd = accept(ready_fd, (struct sockaddr *)&their_addr, &sin_size);
                         if (poll_array->count >= 1 + MAX_CONNECTION) {
                             /* send 503 and close it */
+                            printf("sending 503 request\n");
                             char *response;
                             size_t response_len;
                             serialize_http_response(&response, &response_len, SERVICE_UNAVAILABLE, NULL, NULL,
