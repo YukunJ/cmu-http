@@ -316,6 +316,7 @@ int main(int argc, char *argv[]) {
                         // try to parse data to see if we have valid requests, and respond accordingly
                         // use while loop to handle multiple requests
                         Request request;
+                        request.headers = NULL;
                         int read_amount;
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                                                            &request, &read_amount);
