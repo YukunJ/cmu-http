@@ -47,51 +47,51 @@ void to_lower(char *str, size_t str_len) {
 * Given a char buffer returns the parsed request headers
 */
 test_error_code_t parse_http_request(char *buffer, size_t size, Request *request, int *read_amount) {
-  //Differant states in the state machine
-	enum {
-		STATE_START = 0, STATE_CR, STATE_CRLF, STATE_CRLFCR, STATE_CRLFCRLF
-	};
+    //Differant states in the state machine
+    enum {
+        STATE_START = 0, STATE_CR, STATE_CRLF, STATE_CRLFCR, STATE_CRLFCRLF
+    };
 
-	int i = 0, state;
-	size_t offset = 0;
-	char ch;
-	char buf[8192];
-	memset(buf, 0, 8192);
+    int i = 0, state;
+    size_t offset = 0;
+    char ch;
+    char buf[8192];
+    memset(buf, 0, 8192);
 
-	state = STATE_START;
-	while (state != STATE_CRLFCRLF) {
-		char expected = 0;
+    state = STATE_START;
+    while (state != STATE_CRLFCRLF) {
+        char expected = 0;
 
-		if (i == size)
-			break;
+        if (i == size)
+            break;
 
-		ch = buffer[i++];
-		buf[offset++] = ch;
+        ch = buffer[i++];
+        buf[offset++] = ch;
 
-		switch (state) {
-		case STATE_START:
-		case STATE_CRLF:
-			expected = '\r';
-			break;
-		case STATE_CR:
-		case STATE_CRLFCR:
-			expected = '\n';
-			break;
-		default:
-			state = STATE_START;
-			continue;
-		}
+        switch (state) {
+            case STATE_START:
+            case STATE_CRLF:
+                expected = '\r';
+                break;
+            case STATE_CR:
+            case STATE_CRLFCR:
+                expected = '\n';
+                break;
+            default:
+                state = STATE_START;
+                continue;
+        }
 
-		if (ch == expected)
-			state++;
-		else
-			state = STATE_START;
+        if (ch == expected)
+            state++;
+        else
+            state = STATE_START;
 
-	}
+    }
     *read_amount = i;
 
     //Valid End State
-	if (state == STATE_CRLFCRLF) {
+    if (state == STATE_CRLFCRLF) {
         request->header_count = 0;
         request->status_header_size = 0;
         request->allocated_headers = 15;
@@ -99,7 +99,7 @@ test_error_code_t parse_http_request(char *buffer, size_t size, Request *request
         set_parsing_options(buf, i, request);
 
         yyrestart(NULL);
-		if (yyparse() == SUCCESS) {
+        if (yyparse() == SUCCESS) {
             request->valid = true;
             Request_header *header = &request->headers[request->header_count];
             trim_whitespace(header->header_name, strlen(header->header_name));
@@ -107,10 +107,10 @@ test_error_code_t parse_http_request(char *buffer, size_t size, Request *request
             trim_whitespace(header->header_value, strlen(header->header_value));
             to_lower(header->header_value, strlen(header->header_value));
             return TEST_ERROR_NONE;
-		}
+        }
         return TEST_ERROR_PARSE_FAILED;
-	}
-	return TEST_ERROR_PARSE_PARTIAL;
+    }
+    return TEST_ERROR_PARSE_PARTIAL;
 }
 
 /**
@@ -126,7 +126,7 @@ test_error_code_t serialize_http_request(char *buffer, size_t *size, Request *re
     p[strlen(request->http_method)] = ' ';
     p += strlen(request->http_method) + 1;
     *size += strlen(request->http_method) + 1;
-    
+
     memcpy(p, request->http_uri, strlen(request->http_uri));
     p[strlen(request->http_uri)] = ' ';
     p += strlen(request->http_uri) + 1;
@@ -175,7 +175,7 @@ test_error_code_t serialize_http_request(char *buffer, size_t *size, Request *re
  * Given a char buffer returns the parsed request headers
  */
 test_error_code_t serialize_http_response(char **msg, size_t *len, const char *prepopulated_headers, char *content_type,
-                   char *content_length, char *last_modified, size_t body_len, char *body, bool should_close) {
+                                          char *content_length, char *last_modified, size_t body_len, char *body, bool should_close) {
     char date[4096];
     time_t now;
     time(&now);
@@ -200,14 +200,14 @@ test_error_code_t serialize_http_response(char **msg, size_t *len, const char *p
     size_t msg_len;
     if (!should_close) {
         msg_len = prepopulated_len + strlen(HTTP_VER) + 1
-                         + strlen(CONNECTION) + strlen(CONNECTION_VAL) + strlen(CRLF)
-                         + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
-                         + strlen(DATE) + date_len + strlen(CRLF);
+                  + strlen(CONNECTION) + strlen(CONNECTION_VAL) + strlen(CRLF)
+                  + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
+                  + strlen(DATE) + date_len + strlen(CRLF);
     } else {
         msg_len = prepopulated_len + strlen(HTTP_VER) + 1
-                         + strlen(CONNECTION) + strlen(CONNECTION_CLOSE) + strlen(CRLF)
-                         + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
-                         + strlen(DATE) + date_len + strlen(CRLF);
+                  + strlen(CONNECTION) + strlen(CONNECTION_CLOSE) + strlen(CRLF)
+                  + strlen(SERVER) + strlen(SERVER_VAL) + strlen(CRLF)
+                  + strlen(DATE) + date_len + strlen(CRLF);
     }
 
     if (content_type != NULL) {
@@ -580,7 +580,6 @@ void remove_from_poll_array(int remove_idx, poll_array_t *array) {
         free(array->buffers[remove_idx]);
     }
     array->buffers[remove_idx] = array->buffers[array->count - 1];
-    array->buffers[array->count - 1] = NULL;
     array->sizes[remove_idx] = array->sizes[array->count - 1];
 
     array->count -= 1;
