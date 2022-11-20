@@ -55,17 +55,11 @@ bool check_file_existence(const char* filename){
  * @param size the pointer to size_t indicating how many bytes are loaded from the file
  */
 void load_filesize(const char *filename, size_t *size) {
-    printf("before open file\n");
-    printf("File to open name is [%s]\n", filename);
     FILE *f = fopen(filename, "rb");
-    printf("Before fseek()\n");
     fseek(f, 0, SEEK_END);
-    printf("Before ftell()\n");
     size_t fsize = ftell(f);
-    printf("After ftell()\n");
     *size = fsize;
     fclose(f);
-    printf("Close file\n");
 }
 
 /**
@@ -155,21 +149,16 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
             strncat(whole_path, "index.html", strlen("index.html"));
         }
 
-        printf("Before check file exists\n");
         fflush(stdout);
         if (check_file_existence(whole_path)) {
-            printf("After check file exists\n");
             // get the size of the requested file
             size_t file_size;
             load_filesize(whole_path, &file_size);
-            printf("After load file size\n");
             // check the extension type of the file
-            printf("Before extension\n");
             fflush(stdout);
             char *extension;
             size_t extension_size;
             verify_extension(whole_path, &extension, &extension_size);
-            printf("After extension\n");
             char content_length[20] = "";
             snprintf(content_length, sizeof(content_length), "%zu", file_size);
 
@@ -189,9 +178,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
                 free(response);
 
                 FILE *f = fopen(whole_path, "rb");
-                printf("start allocating file buffer\n");
                 char *file_buf = calloc(FILE_BUF_SIZE, sizeof(char));
-                printf("finish allocating file buffer\n");
                 size_t curr_read = 0;
                 while (curr_read < file_size) {
                     size_t num_read = fread(file_buf, sizeof(char), FILE_BUF_SIZE, f);
@@ -386,6 +373,7 @@ int main(int argc, char *argv[]) {
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
                                 bool is_bad_request = serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
+                                free(request.headers);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
@@ -398,6 +386,7 @@ int main(int argc, char *argv[]) {
                                 }
                                 // handle malformed result
                             } else if (result_code == TEST_ERROR_PARSE_FAILED){
+                                free(request.headers);
                                 /* Unknown Method , 400 Bad Request */
                                 char *response;
                                 size_t response_len;
