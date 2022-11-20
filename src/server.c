@@ -337,6 +337,7 @@ int main(int argc, char *argv[]) {
                         // try to parse data to see if we have valid requests, and respond accordingly
                         // use while loop to handle multiple requests
                         Request request;
+                        request.headers = NULL;
                         int read_amount;
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                                                            &request, &read_amount);
@@ -410,6 +411,9 @@ int main(int argc, char *argv[]) {
                                 free(poll_array->buffers[i]);
                                 poll_array->buffers[i] = new_buffer;
                                 poll_array->sizes[i] -= read_amount;
+                            }
+                            if (request.headers != NULL) {
+                                free(request.headers);
                             }
                             // if we have more requests in the buffer, handle them
                             if (poll_array->sizes[i] > 0) {
