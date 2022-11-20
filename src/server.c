@@ -157,10 +157,11 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         printf("Before check file exists\n");
         fflush(stdout);
         if (check_file_existence(whole_path)) {
+            printf("After check file exists\n");
             // get the size of the requested file
             size_t file_size;
             load_filesize(whole_path, &file_size);
-
+            printf("After load file size\n");
             // check the extension type of the file
             printf("Before extension\n");
             fflush(stdout);
