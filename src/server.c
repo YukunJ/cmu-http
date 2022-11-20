@@ -154,7 +154,8 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
             strncat(whole_path, "index.html", strlen("index.html"));
         }
 
-
+        printf("Before check file exists\n");
+        fflush(stdout);
         if (check_file_existence(whole_path)) {
             // get the size of the requested file
             size_t file_size;
@@ -162,6 +163,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
 
             // check the extension type of the file
             printf("Before extension\n");
+            fflush(stdout);
             char *extension;
             size_t extension_size;
             verify_extension(whole_path, &extension, &extension_size);
