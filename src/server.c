@@ -312,6 +312,9 @@ int main(int argc, char *argv[]) {
             } else {
               // glue together the buffers
               if (poll_array->sizes[i] == 0) {
+                  if (poll_array->buffers[i] != NULL) {
+                      free(poll_array->buffers[i]);
+                  }
                 poll_array->buffers[i] = (char *)malloc(ready * sizeof(char));
                 memcpy(poll_array->buffers[i], local_buf, ready);
                 poll_array->sizes[i] += ready;
