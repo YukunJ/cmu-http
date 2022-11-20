@@ -32,7 +32,7 @@
 #define BUF_SIZE 8192
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
-#define FILE_BUF_SIZE (1024 * 1024 * 10)
+#define FILE_BUF_SIZE (1024 * 1024 * 1)
 #define MAX_CONNECTION 100
 /**
  * @brief helper function to check if
@@ -139,7 +139,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         return true;
     }
     bool bad_request = false;
-    if (strcmp(request->http_method, GET) == 0 || strcmp(request->http_method, HEAD) == 0) {
+     if (strcmp(request->http_method, GET) == 0 || strcmp(request->http_method, HEAD) == 0) {
         // A GET request
         printf("Deal with a GET / HEAD method\n");
         char *item_seek = request->http_uri;
@@ -217,13 +217,13 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         robust_write(client_fd, read_buf, read_amount);
     } else {
         /* Unknown Method , 400 Bad Request */
-        char *response;
-        size_t response_len;
-        serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                NULL, 0, NULL, true);
-        robust_write(client_fd, response, response_len);
-        bad_request = true;
-        free(response);
+         char *response;
+         size_t response_len;
+         serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
+                                 NULL, 0, NULL, true);
+         robust_write(client_fd, response, response_len);
+         bad_request = true;
+         free(response);
     }
     return bad_request;
 }
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
     /* CP1: Set up sockets and read the buf */
 
     /* build the listening server descriptor */
-    int max_pending_queue = 2048; /* how many pending connection allowed to be placed in the socket queue */
+    int max_pending_queue = 1024; /* how many pending connection allowed to be placed in the socket queue */
     int listen_fd = build_server(HTTP_PORT_CHAR, max_pending_queue, true);
     if (listen_fd == -1) {
         fprintf(stderr, "Unable to build listening fd\n");
@@ -256,13 +256,35 @@ int main(int argc, char *argv[]) {
     }
 
     poll_array_t *poll_array = init_poll_array();
-    add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
+    // add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
     while (true) {
-        int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
+        struct pollfd listen_pfds[1];
+        listen_pfds[0].fd = listen_fd;
+        listen_pfds[0].events = POLL_IN;
+        // accept new incoming connection
+        if (poll(listen_pfds, 1, 0)) {
+            struct sockaddr_storage their_addr;
+            socklen_t sin_size = sizeof(their_addr);
+            int new_client_fd = accept(listen_fd, (struct sockaddr *)&their_addr, &sin_size);
+            if (poll_array->count >= MAX_CONNECTION) {
+                /* send 503 and close it */
+                char *response;
+                size_t response_len;
+                serialize_http_response(&response, &response_len, SERVICE_UNAVAILABLE, NULL, NULL,
+                                        NULL, 0, NULL, true);
+                robust_write(new_client_fd, response, response_len);
+                free(response);
+                close(new_client_fd);
+            } else {
+                printf("Get a new client connection fd=%d\n", new_client_fd);
+                add_to_poll_array(new_client_fd, poll_array, POLLIN);
+            }
+        }
+        int ready_count = poll(poll_array->pfds, poll_array->count, 0);
         if (ready_count > 0) {
             // some socket fds are ready to be read
             // process backward, last deal with listen fd if available
@@ -285,11 +307,13 @@ int main(int argc, char *argv[]) {
                             free(response);
                             close(new_client_fd);
                         } else {
+                            printf("Get a new client connection fd=%d\n", new_client_fd);
                             add_to_poll_array(new_client_fd, poll_array, POLLIN);
                         }
                     } else {
                         // a client send new request to us
                         // read everything from the socket once, 8192 at most
+                        printf("Get some messages from client connection fd=%d\n", poll_array->pfds[i].fd);
                         char local_buf[BUF_SIZE];
                         memset(local_buf, 0, sizeof(local_buf));
                         ssize_t ready = recv(ready_fd, local_buf, BUF_SIZE, COMMON_FLAG);
@@ -299,6 +323,7 @@ int main(int argc, char *argv[]) {
                             return EXIT_FAILURE;
                         } else if (ready == 0) {
                             // client exit
+                            printf("The client fd=%d has exited\n", poll_array->pfds[i].fd);
                             remove_from_poll_array(i, poll_array); // caution: pass in index
                             continue;
                         } else {
@@ -351,6 +376,7 @@ int main(int argc, char *argv[]) {
                                 if (result_code == TEST_ERROR_PARSE_PARTIAL) {
                                     break;
                                 }
+                                printf("Parsed a full request, about to serve_request()\n");
                                 bool is_bad_request = serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request.body != NULL) {
                                     free(request.body);
@@ -376,6 +402,7 @@ int main(int argc, char *argv[]) {
                             }
                             // slide the request buffer
                             if (read_amount == poll_array->sizes[i]) {
+                                printf("read everything from the buffer\n");
                                 poll_array->sizes[i] = 0;
                                 free(poll_array->buffers[i]);
                                 poll_array->buffers[i] = NULL;
@@ -394,9 +421,6 @@ int main(int argc, char *argv[]) {
                             }
                         }
                     }
-                }
-                if (--ready_count == 0) {
-                    break;
                 }
             }
         }
