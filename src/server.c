@@ -32,7 +32,7 @@
 #define BUF_SIZE 8192
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
-#define FILE_BUF_SIZE (1024 * 1024 * 10)
+#define FILE_BUF_SIZE (1024 * 1024 * 1)
 #define MAX_CONNECTION 100
 /**
  * @brief helper function to check if
