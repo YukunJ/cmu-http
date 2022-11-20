@@ -391,9 +391,6 @@ int main(int argc, char *argv[]) {
                                 poll_array->buffers[i] = new_buffer;
                                 poll_array->sizes[i] -= read_amount;
                             }
-                            if (request.headers != NULL) {
-                                free(request.headers);
-                            }
                             // if we have more requests in the buffer, handle them
                             if (poll_array->sizes[i] > 0) {
                                 result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
