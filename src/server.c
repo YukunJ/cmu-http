@@ -270,7 +270,7 @@ int main(int argc, char *argv[]) {
                 int new_cfd = -1;
                 struct sockaddr_storage their_addr;
                 socklen_t sin_size = sizeof(their_addr);
-                if ((new_cfd = accept(listen_fd, (struct sockaddr *)&their_addr, &sin_size)) > 0) {
+                while ((new_cfd = accept(listen_fd, (struct sockaddr *)&their_addr, &sin_size)) > 0) {
                     if (poll_array->count >= 1 + MAX_CONNECTION) {
                         /* send 503 and close it */
                         char *response;
