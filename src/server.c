@@ -183,6 +183,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir,
         FILE *f = fopen(whole_path, "rb");
         char *file_buf = calloc(FILE_BUF_SIZE, sizeof(char));
         size_t curr_read = 0;
+        printf("About to transfer %zu bytes of data\n", file_size);
         while (curr_read < file_size) {
           size_t num_read = fread(file_buf, sizeof(char), FILE_BUF_SIZE, f);
           curr_read += num_read;
@@ -224,6 +225,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir,
     bad_request = true;
     free(response);
   }
+  free(request->headers)
   return bad_request;
 }
 
@@ -331,7 +333,7 @@ int main(int argc, char *argv[]) {
             test_error_code_t result_code =
                 parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                    &request, &read_amount);
-            if (poll_array->sizes[i] > 0) {
+            while (poll_array->sizes[i] > 0) {
               if (result_code == TEST_ERROR_PARSE_PARTIAL) {
                 break;
               } else if (result_code == TEST_ERROR_NONE) {
