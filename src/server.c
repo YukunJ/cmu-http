@@ -32,7 +32,7 @@
 #define BUF_SIZE 8192
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
-#define FILE_BUF_SIZE (1024 * 1024)
+#define FILE_BUF_SIZE (1024 * 1024 * 5)
 #define MAX_CONNECTION 100
 /**
  * @brief helper function to check if
@@ -349,6 +349,7 @@ int main(int argc, char *argv[]) {
                                 // handle the case in which body of post is not delivered
                                 if (result_code == TEST_ERROR_PARSE_PARTIAL) {
                                     free(request->headers);
+                                    free(request);
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
