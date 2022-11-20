@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
     /* CP1: Set up sockets and read the buf */
 
     /* build the listening server descriptor */
-    int max_pending_queue = 200; /* how many pending connection allowed to be placed in the socket queue */
+    int max_pending_queue = 1024; /* how many pending connection allowed to be placed in the socket queue */
     int listen_fd = build_server(HTTP_PORT_CHAR, max_pending_queue, true);
     if (listen_fd == -1) {
         fprintf(stderr, "Unable to build listening fd\n");
