@@ -161,10 +161,11 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
             load_filesize(whole_path, &file_size);
 
             // check the extension type of the file
+            printf("Before extension\n");
             char *extension;
             size_t extension_size;
             verify_extension(whole_path, &extension, &extension_size);
-
+            printf("After extension\n");
             char content_length[20] = "";
             snprintf(content_length, sizeof(content_length), "%zu", file_size);
 
