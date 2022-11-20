@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* the main loop of HTTP server */
-    int poll_wait = 3000; // in ms
+    int poll_wait = 1000; // in ms
     printf("About to begin main while loop\n");
     while (true) {
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
@@ -267,23 +267,6 @@ int main(int argc, char *argv[]) {
             // some socket fds are ready to be read
             // process backward, last deal with listen fd if available
             for (int i = poll_array->count - 1; i >= 0; i--) {
-                int new_cfd = -1;
-                struct sockaddr_storage their_addr;
-                socklen_t sin_size = sizeof(their_addr);
-                while ((new_cfd = accept(listen_fd, (struct sockaddr *)&their_addr, &sin_size)) > 0) {
-                    if (poll_array->count >= 1 + MAX_CONNECTION) {
-                        /* send 503 and close it */
-                        char *response;
-                        size_t response_len;
-                        serialize_http_response(&response, &response_len, SERVICE_UNAVAILABLE, NULL, NULL,
-                                                NULL, 0, NULL, true);
-                        robust_write(new_cfd, response, response_len);
-                        free(response);
-                        close(new_cfd);
-                    } else {
-                        add_to_poll_array(new_cfd, poll_array, POLLIN);
-                    }
-                }
                 if (poll_array->pfds[i].revents & POLLIN) {
                     // this socket fd is ready to be read
                     int ready_fd = poll_array->pfds[i].fd;
