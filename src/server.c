@@ -368,8 +368,8 @@ int main(int argc, char *argv[]) {
                                         // printf("request body: %s\n", request.body);
                                         read_amount += content_len;
                                     }
-                                    if (strcasecmp(request->headers[request_counter].header_name, "Connection") == 0) {
-                                        if (strcasecmp(request->headers[request_counter].header_value, CONNECTION_CLOSE) == 0) {
+                                    if (strcasestr(request->headers[request_counter].header_name, "Connection") != NULL) {
+                                        if (strcasestr(request->headers[request_counter].header_value, CONNECTION_CLOSE) != NULL) {
                                             should_close = true;
                                         }
                                     }
