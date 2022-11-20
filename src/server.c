@@ -205,7 +205,14 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         /**
         A POST request, echo back the whole request directly
         */
-        robust_write(client_fd, read_buf, read_amount);
+        // robust_write(client_fd, read_buf, read_amount);
+        char *response;
+        size_t response_len;
+        serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
+                                NULL, 0, NULL, true);
+        robust_write(client_fd, response, response_len);
+        bad_request = true;
+        free(response);
     } else {
         /* Unknown Method , 400 Bad Request */
         char *response;
