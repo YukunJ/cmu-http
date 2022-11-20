@@ -305,6 +305,7 @@ int main(int argc, char *argv[]) {
             if (ready < 0) {
               // something wrong happens
               fprintf(stderr, "recv() return < 0 from client_fd\n");
+              fprintf(stderr, "errno=%d\n", errno);
               continue;
               // return EXIT_FAILURE;
             } else if (ready == 0) {
