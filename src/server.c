@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
     /* the main loop of HTTP server */
-    int poll_wait = 1000; // in ms
+    int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
     while (true) {
         int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
