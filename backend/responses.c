@@ -23,7 +23,7 @@ char *CRLF = "\r\n";
 
 char *CONNECTION = "Connection: ";
 char *CONNECTION_VAL = "Keep-Alive";
-char *CONNECTION_CLOSE = "close";
+char *CONNECTION_CLOSE = "Close";
 
 char *SERVER = "Server: ";
 char *SERVER_VAL = "cmu/1.0";

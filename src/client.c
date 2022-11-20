@@ -8,40 +8,40 @@
  * No part of the HTTP project may be copied and/or distributed
  * without the express permission of the 15-441/641 course staff.
  */
-#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <parse_http.h>
+#include <ports.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <arpa/inet.h>
-
-#include <parse_http.h>
+#include <sys/socket.h>
 #include <test_error.h>
-#include <ports.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[]) {
-    /* Validate and parse args */
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s <server-ip>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-    
-    /* Set up a connection to the HTTP server */
-    int http_sock;
-    struct sockaddr_in http_server;
-    if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        return TEST_ERROR_HTTP_CONNECT_FAILED;
-    }
-    http_server.sin_family = AF_INET;
-    http_server.sin_port = htons(HTTP_PORT);
-    inet_pton(AF_INET, argv[1], &(http_server.sin_addr));
-    
-    fprintf(stderr, "Parsed IP address of the server: %X\n", htonl(http_server.sin_addr.s_addr));
+  /* Validate and parse args */
+  if (argc != 2) {
+    fprintf(stderr, "usage: %s <server-ip>\n", argv[0]);
+    return EXIT_FAILURE;
+  }
 
-    if (connect (http_sock, (struct sockaddr *)&http_server, sizeof(http_server)) < 0){
-        return TEST_ERROR_HTTP_CONNECT_FAILED;
-    }
+  /* Set up a connection to the HTTP server */
+  int http_sock;
+  struct sockaddr_in http_server;
+  if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    return TEST_ERROR_HTTP_CONNECT_FAILED;
+  }
+  http_server.sin_family = AF_INET;
+  http_server.sin_port = htons(HTTP_PORT);
+  inet_pton(AF_INET, argv[1], &(http_server.sin_addr));
 
-    /* CP1: Send out a HTTP request, waiting for the response */
+  fprintf(stderr, "Parsed IP address of the server: %X\n",
+          htonl(http_server.sin_addr.s_addr));
 
+  if (connect(http_sock, (struct sockaddr *)&http_server, sizeof(http_server)) <
+      0) {
+    return TEST_ERROR_HTTP_CONNECT_FAILED;
+  }
+
+  /* CP1: Send out a HTTP request, waiting for the response */
 }
