@@ -133,12 +133,11 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         char *response;
         size_t response_len;
         serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                NULL, 0, NULL, true);
+                                NULL, 0, NULL, should_close);
         robust_write(client_fd, response, response_len);
         free(response);
-        return true;
+        return false;
     }
-    bool bad_request = false;
     if (strcmp(request->http_method, GET) == 0 || strcmp(request->http_method, HEAD) == 0) {
         // A GET request
         printf("Deal with a GET / HEAD method\n");
@@ -206,7 +205,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
             char *response;
             size_t response_len;
             serialize_http_response(&response, &response_len, NOT_FOUND, NULL, NULL,
-                                    NULL, 0, NULL, false);
+                                    NULL, 0, NULL, should_close);
             robust_write(client_fd, response, response_len);
             free(response);
         }
@@ -220,12 +219,11 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         char *response;
         size_t response_len;
         serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                NULL, 0, NULL, true);
+                                NULL, 0, NULL, should_close);
         robust_write(client_fd, response, response_len);
-        bad_request = true;
         free(response);
     }
-    return bad_request;
+    return false;
 }
 
 int main(int argc, char *argv[]) {
@@ -355,13 +353,13 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                bool is_bad_request = serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
+                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
                                 // if the request has 'Connection: close' in header or the request is bad
                                 // should close the connection after service immediately
-                                if (should_close || is_bad_request) {
+                                if (should_close) {
                                     // case in-sensitive search
                                     remove_from_poll_array(i, poll_array);
                                     break;
