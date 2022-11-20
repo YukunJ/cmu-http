@@ -30,7 +30,6 @@
 #include "ports.h"
 
 #define BUF_SIZE 8192
-#define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
 #define FILE_BUF_SIZE (1024 * 1024)
 #define MAX_CONNECTION 100
@@ -69,8 +68,6 @@ void load_filesize(const char *filename, size_t *size) {
  * @param size pointer to how length of the extension
  */
 void verify_extension(const char *filename, char **buf, size_t *size) {
-    // TODO: free this buf
-    size_t filename_len = strlen(filename);
     char *last_dot = strrchr(filename, '.');
     if (last_dot == NULL) {
         *size = strlen(OCTET_MIME);
@@ -124,7 +121,6 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
 bool serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount,
                    bool should_close) {
     assert(request->valid == true);
-    // #TODO: add error checking before serving
     /* check if the HTTP version if the request is 1.1 */
     if (strcmp(request->http_version, HTTP_VER) != 0) {
         char *response;
@@ -266,7 +262,7 @@ int main(int argc, char *argv[]) {
     printf("About to begin main while loop\n");
     while (true) {
         // accept new incoming connection
-        while (poll(listen_pfds, 1, 0)) {
+        while (poll(listen_pfds, 1, poll_wait)) {
             struct sockaddr_storage their_addr;
             socklen_t sin_size = sizeof(their_addr);
             int new_client_fd = accept(listen_fd, (struct sockaddr *)&their_addr, &sin_size);
@@ -292,26 +288,6 @@ int main(int argc, char *argv[]) {
                 if (poll_array->pfds[i].revents & POLLIN) {
                     // this socket fd is ready to be read
                     int ready_fd = poll_array->pfds[i].fd;
-                    if (false && ready_fd == listen_fd) {
-                        // accept new incoming connection
-                        struct sockaddr_storage their_addr;
-                        socklen_t sin_size = sizeof(their_addr);
-                        int new_client_fd = accept(ready_fd, (struct sockaddr *)&their_addr, &sin_size);
-                        if (poll_array->count >= 1 + MAX_CONNECTION) {
-                            /* send 503 and close it */
-                            printf("sending 503 request\n");
-                            char *response;
-                            size_t response_len;
-                            serialize_http_response(&response, &response_len, SERVICE_UNAVAILABLE, NULL, NULL,
-                                                    NULL, 0, NULL, true);
-                            robust_write(new_client_fd, response, response_len);
-                            free(response);
-                            close(new_client_fd);
-                        } else {
-                            printf("Get a new client connection fd=%d\n", new_client_fd);
-                            add_to_poll_array(new_client_fd, poll_array, POLLIN);
-                        }
-                    } else {
                         // a client send new request to us
                         // read everything from the socket once, 8192 at most
                         printf("Get some messages from client connection fd=%d\n", poll_array->pfds[i].fd);
@@ -380,7 +356,6 @@ int main(int argc, char *argv[]) {
                                     free(request);
                                     break;
                                 }
-                                printf("Parsed a full request, about to serve_request()\n");
                                 serve_request(ready_fd, request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request->body != NULL) {
                                     free(request->body);
@@ -410,7 +385,6 @@ int main(int argc, char *argv[]) {
                             }
                             // slide the request buffer
                             if (read_amount == poll_array->sizes[i]) {
-                                printf("read everything from the buffer\n");
                                 poll_array->sizes[i] = 0;
                                 free(poll_array->buffers[i]);
                                 poll_array->buffers[i] = NULL;
@@ -431,7 +405,7 @@ int main(int argc, char *argv[]) {
                             }
                         }
                     }
-                }
+
             }
         }
     }
