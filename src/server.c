@@ -58,6 +58,7 @@ void load_filesize(const char *filename, size_t *size) {
     printf("before open file\n");
     printf("File to open name is [%s]\n", filename);
     FILE *f = fopen(filename, "rb");
+    printf("Before fseek()\n");
     fseek(f, 0, SEEK_END);
     printf("Before ftell()\n");
     size_t fsize = ftell(f);
