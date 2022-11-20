@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
                                 bool is_bad_request = serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
-                                free(request.headers);
+                                // free(request.headers);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
                                 }
                                 // handle malformed result
                             } else if (result_code == TEST_ERROR_PARSE_FAILED){
-                                free(request.headers);
+                                // free(request.headers);
                                 /* Unknown Method , 400 Bad Request */
                                 char *response;
                                 size_t response_len;
