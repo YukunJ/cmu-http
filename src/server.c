@@ -302,6 +302,7 @@ int main(int argc, char *argv[]) {
                             serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
                                                     NULL, 0, NULL, true);
                             robust_write(ready_fd, response, response_len);
+                            remove_from_poll_array(i, poll_array);
                             free(response);
                             /* Debug: send 400 anyway */
                             // const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n";
