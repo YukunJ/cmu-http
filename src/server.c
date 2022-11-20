@@ -55,11 +55,16 @@ bool check_file_existence(const char* filename){
  * @param size the pointer to size_t indicating how many bytes are loaded from the file
  */
 void load_filesize(const char *filename, size_t *size) {
+    printf("before open file\n");
+    printf("File to open name is [%s]\n", filename);
     FILE *f = fopen(filename, "rb");
     fseek(f, 0, SEEK_END);
+    printf("Before ftell()\n");
     size_t fsize = ftell(f);
+    printf("After ftell()\n");
     *size = fsize;
     fclose(f);
+    printf("Close file\n");
 }
 
 /**
