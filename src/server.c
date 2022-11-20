@@ -377,13 +377,13 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
+                                bool is_bad_request = serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
                                 // if the request has 'Connection: close' in header or the request is bad
                                 // should close the connection after service immediately
-                                if (should_close) {
+                                if (should_close || is_bad_request) {
                                     // case in-sensitive search
                                     remove_from_poll_array(i, poll_array);
                                     break;
