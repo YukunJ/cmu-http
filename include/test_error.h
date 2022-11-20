@@ -17,20 +17,19 @@ extern "C" {
 
 // Internal error codes
 typedef enum test_error_code_t {
-    // OK (DO NOT TOUCH)
-    TEST_ERROR_NONE = 0,
-    /* HTTP CONN Errors */
-    TEST_ERROR_HTTP_CONNECT_FAILED,
-    TEST_ERROR_HTTP_SEND_FAILED,
+  // OK (DO NOT TOUCH)
+  TEST_ERROR_NONE = 0,
+  /* HTTP CONN Errors */
+  TEST_ERROR_HTTP_CONNECT_FAILED,
+  TEST_ERROR_HTTP_SEND_FAILED,
 
-    /* HTTP PARSE Errors */
-    TEST_ERROR_PARSE_PARTIAL,
-    TEST_ERROR_PARSE_FAILED,
-}
-test_error_code_t;
+  /* HTTP PARSE Errors */
+  TEST_ERROR_PARSE_PARTIAL,
+  TEST_ERROR_PARSE_FAILED,
+} test_error_code_t;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // HARNESS_ERROR_H
+#endif  // HARNESS_ERROR_H
