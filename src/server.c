@@ -296,14 +296,16 @@ int main(int argc, char *argv[]) {
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                                                            &request, &read_amount);
                         while (poll_array->sizes[i] > 0) {
-                            char *response;
+                            if (result_code == TEST_ERROR_NONE) {
+                                char *response;
 
-                            size_t response_len;
-                            serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                                    NULL, 0, NULL, true);
-                            robust_write(ready_fd, response, response_len);
-                            remove_from_poll_array(i, poll_array);
-                            free(response);
+                                size_t response_len;
+                                serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
+                                                        NULL, 0, NULL, true);
+                                robust_write(ready_fd, response, response_len);
+                                remove_from_poll_array(i, poll_array);
+                                free(response);
+                            }
                             /* Debug: send 400 anyway */
                             // const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n";
                             // robust_write(ready_fd, bad_request_char, strlen(bad_request_char));
