@@ -187,7 +187,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
                 char *file_buf = calloc(allocated_size, sizeof(char));
                 size_t curr_read = 0;
                 while (curr_read < file_size) {
-                    size_t num_read = fread(file_buf, sizeof(char), FILE_BUF_SIZE, f);
+                    size_t num_read = fread(file_buf, sizeof(char), allocated_size, f);
                     curr_read += num_read;
                     robust_write(client_fd, file_buf, num_read);
                 }
@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
     while (true) {
-        int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
+        int ready_count = poll(poll_array->pfds, poll_array->count, 0);
         if (ready_count > 0) {
             // some socket fds are ready to be read
             // process backward, last deal with listen fd if available
