@@ -21,8 +21,9 @@ char *CLOSE = "close";
 /* Response Headers */
 char *CRLF = "\r\n";
 
-char *CONNECTION = "Connection:";
+char *CONNECTION = "Connection: ";
 char *CONNECTION_VAL = "Keep-Alive";
+char *CONNECTION_CLOSE = "Close";
 
 char *SERVER = "Server: ";
 char *SERVER_VAL = "cmu/1.0";
@@ -41,7 +42,7 @@ char *OK = "200 OK\r\n";
 char *NOT_FOUND = "404 Not Found\r\n";
 char *SERVICE_UNAVAILABLE = "503 Service Unavailable\r\n";
 char *BAD_REQUEST = "400 Bad Request\r\n";
-
+char *BAD_REQUEST_SHORT = "400\r\n";
 /* MIME TYPES */
 char *HTML_EXT = "html";
 char *HTML_MIME = "text/html";
