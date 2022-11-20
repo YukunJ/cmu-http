@@ -293,7 +293,8 @@ int main(int argc, char *argv[]) {
                         if (ready < 0) {
                             // something wrong happens
                             fprintf(stderr, "recv() return < 0 from client_fd\n");
-                            return EXIT_FAILURE;
+                            continue;
+                            // return EXIT_FAILURE;
                         } else if (ready == 0) {
                             // client exit
                             printf("The client fd=%d has exited\n", poll_array->pfds[i].fd);
