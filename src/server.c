@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
         listen_pfds[0].fd = listen_fd;
         listen_pfds[0].events = POLL_IN;
         // accept new incoming connection
-        while (poll(listen_pfds, 1, 0)) {
+        if (poll(listen_pfds, 1, 0)) {
             struct sockaddr_storage their_addr;
             socklen_t sin_size = sizeof(their_addr);
             int new_client_fd = accept(listen_fd, (struct sockaddr *)&their_addr, &sin_size);
