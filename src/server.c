@@ -184,7 +184,9 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
                 free(response);
 
                 FILE *f = fopen(whole_path, "rb");
+                printf("start allocating file buffer\n");
                 char *file_buf = calloc(FILE_BUF_SIZE, sizeof(char));
+                printf("finish allocating file buffer\n");
                 size_t curr_read = 0;
                 while (curr_read < file_size) {
                     size_t num_read = fread(file_buf, sizeof(char), FILE_BUF_SIZE, f);
