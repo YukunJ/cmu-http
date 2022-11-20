@@ -129,7 +129,26 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
     bool bad_request = false;
     assert(request->valid == true);
     // #TODO: add error checking before serving
-    if (strcmp(request->http_method, GET) == 0 || strcmp(request->http_method, HEAD) == 0) {
+    /* check if the HTTP version if the request is 1.1 */
+    if (strcmp(request->http_version, HTTP_VER) != 0) {
+        char *response;
+        size_t response_len;
+        serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
+                                NULL, 0, NULL, true);
+        robust_write(client_fd, response, response_len);
+        bad_request = true;
+        free(response);
+    }
+
+    if (strcmp(request->http_method, GET) == 0) {
+        char *response;
+        size_t response_len;
+        serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
+                                NULL, 0, NULL, true);
+        robust_write(client_fd, response, response_len);
+        bad_request = true;
+        free(response);
+    } else if (strcmp(request->http_method, GET) == 0 || strcmp(request->http_method, HEAD) == 0) {
         // A GET request
         printf("Deal with a GET / HEAD method\n");
         char *item_seek = request->http_uri;
@@ -205,14 +224,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         /**
         A POST request, echo back the whole request directly
         */
-        // robust_write(client_fd, read_buf, read_amount);
-        char *response;
-        size_t response_len;
-        serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                NULL, 0, NULL, true);
-        robust_write(client_fd, response, response_len);
-        bad_request = true;
-        free(response);
+        robust_write(client_fd, read_buf, read_amount);
     } else {
         /* Unknown Method , 400 Bad Request */
         char *response;
