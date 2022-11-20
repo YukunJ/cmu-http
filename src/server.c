@@ -133,6 +133,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir,
                             NULL, NULL, 0, NULL, true);
     robust_write(client_fd, response, response_len);
     free(response);
+    free(request->headers);
     return true;
   }
   bool bad_request = false;
@@ -224,6 +225,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir,
     bad_request = true;
     free(response);
   }
+  free(request->headers);
   return bad_request;
 }
 
