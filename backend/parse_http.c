@@ -580,6 +580,7 @@ void remove_from_poll_array(int remove_idx, poll_array_t *array) {
         free(array->buffers[remove_idx]);
     }
     array->buffers[remove_idx] = array->buffers[array->count - 1];
+    array->buffers[array->count - 1] = NULL;
     array->sizes[remove_idx] = array->sizes[array->count - 1];
 
     array->count -= 1;
