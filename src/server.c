@@ -352,7 +352,7 @@ int main(int argc, char *argv[]) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
+                                serve_request(ready_fd, request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request->body != NULL) {
                                     free(request->body);
                                 }
