@@ -188,6 +188,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
                     robust_write(client_fd, file_buf, num_read);
                 }
                 free(file_buf);
+                fclose(f);
             } else {
                 // HEAD Method
                 serialize_http_response(&response, &response_len, OK, extension, content_length,
