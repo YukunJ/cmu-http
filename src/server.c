@@ -315,52 +315,51 @@ int main(int argc, char *argv[]) {
                         }
                         // try to parse data to see if we have valid requests, and respond accordingly
                         // use while loop to handle multiple requests
-                        Request request;
-                        request.headers = NULL;
-                        request.body = NULL;
+                        Request *request = (Request *)malloc(sizeof(Request));
                         int read_amount;
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
-                                                                           &request, &read_amount);
+                                                                           request, &read_amount);
                         while (poll_array->sizes[i] > 0) {
                             if (result_code == TEST_ERROR_PARSE_PARTIAL) {
                                 break;
                             } else if (result_code == TEST_ERROR_NONE) {
                                 // first handle the body field:
                                 bool should_close = false;
-                                for (int request_counter = 0; request_counter < request.header_count; request_counter++) {
-                                    if (strcasecmp(request.headers[request_counter].header_name, "Content-Length") == 0) {
+                                for (int request_counter = 0; request_counter < request->header_count; request_counter++) {
+                                    if (strcasecmp(request->headers[request_counter].header_name, "Content-Length") == 0) {
                                         size_t content_len;
-                                        sscanf(request.headers[request_counter].header_value, "%zu", &content_len);
+                                        sscanf(request->headers[request_counter].header_value, "%zu", &content_len);
                                         if (content_len + read_amount > poll_array->sizes[i]) {
                                             result_code = TEST_ERROR_PARSE_PARTIAL;
                                             break;
                                         }
                                         // the request is full
                                         // read from the buffer to update body
-                                        request.body = (char *) malloc(sizeof(char) * content_len);
-                                        memcpy(request.body, poll_array->buffers[i] + read_amount, content_len);
+                                        request->body = (char *) malloc(sizeof(char) * content_len);
+                                        memcpy(request->body, poll_array->buffers[i] + read_amount, content_len);
                                         // printf("request body: %s\n", request.body);
                                         read_amount += content_len;
                                     }
-                                    if (strcasecmp(request.headers[request_counter].header_name, "Connection") == 0) {
-                                        if (strcasecmp(request.headers[request_counter].header_value, CONNECTION_CLOSE) == 0) {
+                                    if (strcasecmp(request->headers[request_counter].header_name, "Connection") == 0) {
+                                        if (strcasecmp(request->headers[request_counter].header_value, CONNECTION_CLOSE) == 0) {
                                             should_close = true;
                                         }
                                     }
                                 }
                                 // handle the case in which body of post is not delivered
                                 if (result_code == TEST_ERROR_PARSE_PARTIAL) {
-                                    free(request.headers);
+                                    free(request->headers);
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
                                 serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
-                                if (request.body != NULL) {
-                                    free(request.body);
+                                if (request->body != NULL) {
+                                    free(request->body);
                                 }
-                                if (request.headers != NULL) {
-                                    free(request.headers);
+                                if (request->headers != NULL) {
+                                    free(request->headers);
                                 }
+                                free(request);
                                 // if the request has 'Connection: close' in header or the request is bad
                                 // should close the connection after service immediately
                                 if (should_close) {
@@ -396,10 +395,9 @@ int main(int argc, char *argv[]) {
                             }
                             // if we have more requests in the buffer, handle them
                             if (poll_array->sizes[i] > 0) {
-                                request.body = NULL;
-                                request.headers = NULL;
+                                request = (Request *)malloc(sizeof(Request));
                                 result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
-                                                                 &request, &read_amount);
+                                                                 request, &read_amount);
                             }
                         }
                     }

@@ -385,9 +385,9 @@ int build_server(const char *port, const int backlog, bool verbose) {
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;      // either IPv4 or IPv6
     hints.ai_socktype = SOCK_STREAM;  // want TCP Stream socket
-    // hints.ai_flags = AI_PASSIVE;      // use my own IP Address
+    hints.ai_flags = AI_PASSIVE;      // use my own IP Address
 
-    if ((error = getaddrinfo("0.0.0.0", port, &hints, &server_info)) != 0) {
+    if ((error = getaddrinfo(NULL, port, &hints, &server_info)) != 0) {
         if (verbose) {
             fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
         }
