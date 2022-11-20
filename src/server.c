@@ -133,7 +133,7 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         char *response;
         size_t response_len;
         serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                NULL, 0, NULL, true);
+                                NULL, 0, NULL, should_close);
         robust_write(client_fd, response, response_len);
         free(response);
         return true;
@@ -262,29 +262,7 @@ int main(int argc, char *argv[]) {
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
     while (true) {
-        struct pollfd listen_pfds[1];
-        listen_pfds[0].fd = listen_fd;
-        listen_pfds[0].events = POLL_IN;
-        // accept new incoming connection
-        if (poll(listen_pfds, 1, 0)) {
-            struct sockaddr_storage their_addr;
-            socklen_t sin_size = sizeof(their_addr);
-            int new_client_fd = accept(listen_fd, (struct sockaddr *)&their_addr, &sin_size);
-            if (poll_array->count >= MAX_CONNECTION) {
-                /* send 503 and close it */
-                char *response;
-                size_t response_len;
-                serialize_http_response(&response, &response_len, SERVICE_UNAVAILABLE, NULL, NULL,
-                                        NULL, 0, NULL, true);
-                robust_write(new_client_fd, response, response_len);
-                free(response);
-                close(new_client_fd);
-            } else {
-                printf("Get a new client connection fd=%d\n", new_client_fd);
-                add_to_poll_array(new_client_fd, poll_array, POLLIN);
-            }
-        }
-        int ready_count = poll(poll_array->pfds, poll_array->count, 0);
+        int ready_count = poll(poll_array->pfds, poll_array->count, poll_wait);
         if (ready_count > 0) {
             // some socket fds are ready to be read
             // process backward, last deal with listen fd if available
