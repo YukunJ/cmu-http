@@ -32,8 +32,8 @@
 #define BUF_SIZE 8192
 #define CONNECTION_TIMEOUT 50
 #define COMMON_FLAG 0
-#define LOGGING_BUF_SIZE 1024
 #define FILE_BUF_SIZE (1024 * 1024)
+#define MAX_CONNECTION 100
 /**
  * @brief helper function to check if
  * @param filename
@@ -125,8 +125,7 @@ void verify_extension(const char *filename, char **buf, size_t *size) {
  * @return if this request is a bad request, should be removed
  */
 bool serve_request(int client_fd, Request *request, const char *server_dir, const char *read_buf, int read_amount,
-                   bool should_close, int logging_fd) {
-    bool bad_request = false;
+                   bool should_close) {
     assert(request->valid == true);
     // #TODO: add error checking before serving
     /* check if the HTTP version if the request is 1.1 */
@@ -136,20 +135,10 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
                                 NULL, 0, NULL, true);
         robust_write(client_fd, response, response_len);
-        bad_request = true;
         free(response);
         return true;
     }
-//
-//    if (strcmp(request->http_method, GET) == 0) {
-//        char *response;
-//        size_t response_len;
-//        serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-//                                NULL, 0, NULL, true);
-//        robust_write(client_fd, response, response_len);
-//        bad_request = true;
-//        free(response);
-//    } else
+    bool bad_request = false;
      if (strcmp(request->http_method, GET) == 0 || strcmp(request->http_method, HEAD) == 0) {
         // A GET request
         printf("Deal with a GET / HEAD method\n");
@@ -167,11 +156,10 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
 
 
         if (check_file_existence(whole_path)) {
-            // the requested file do exist
-            // load the file into memory
-            // char *file_content;
+            // get the size of the requested file
             size_t file_size;
             load_filesize(whole_path, &file_size);
+
             // check the extension type of the file
             char *extension;
             size_t extension_size;
@@ -229,13 +217,13 @@ bool serve_request(int client_fd, Request *request, const char *server_dir, cons
         robust_write(client_fd, read_buf, read_amount);
     } else {
         /* Unknown Method , 400 Bad Request */
-        char *response;
-        size_t response_len;
-        serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                NULL, 0, NULL, true);
-        robust_write(client_fd, response, response_len);
-        bad_request = true;
-        free(response);
+         char *response;
+         size_t response_len;
+         serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
+                                 NULL, 0, NULL, true);
+         robust_write(client_fd, response, response_len);
+         bad_request = true;
+         free(response);
     }
     return bad_request;
 }
@@ -270,8 +258,6 @@ int main(int argc, char *argv[]) {
     poll_array_t *poll_array = init_poll_array();
     add_to_poll_array(listen_fd, poll_array, POLLIN); // add the listening fd to be polled
 
-    /* Logging */
-    int logging_fd = 0; //build_client("54.167.5.75", "3490", true);
     /* the main loop of HTTP server */
     int poll_wait = 3000; // in ms
     printf("About to begin main while loop\n");
@@ -289,8 +275,19 @@ int main(int argc, char *argv[]) {
                         struct sockaddr_storage their_addr;
                         socklen_t sin_size = sizeof(their_addr);
                         int new_client_fd = accept(ready_fd, (struct sockaddr *)&their_addr, &sin_size);
-                        printf("Get a new client connection fd=%d\n", new_client_fd);
-                        add_to_poll_array(new_client_fd, poll_array, POLLIN);
+                        if (poll_array->count >= 1 + MAX_CONNECTION) {
+                            /* send 503 and close it */
+                            char *response;
+                            size_t response_len;
+                            serialize_http_response(&response, &response_len, SERVICE_UNAVAILABLE, NULL, NULL,
+                                                    NULL, 0, NULL, true);
+                            robust_write(new_client_fd, response, response_len);
+                            free(response);
+                            close(new_client_fd);
+                        } else {
+                            printf("Get a new client connection fd=%d\n", new_client_fd);
+                            add_to_poll_array(new_client_fd, poll_array, POLLIN);
+                        }
                     } else {
                         // a client send new request to us
                         // read everything from the socket once, 8192 at most
@@ -322,36 +319,14 @@ int main(int argc, char *argv[]) {
                         }
                         // try to parse data to see if we have valid requests, and respond accordingly
                         // use while loop to handle multiple requests
-                        printf("Try to parse the request\n");
                         Request request;
                         int read_amount;
                         test_error_code_t result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                                                            &request, &read_amount);
                         while (poll_array->sizes[i] > 0) {
-                            /*
-                            if (result_code == TEST_ERROR_NONE) {
-                                char *response;
-
-                                size_t response_len;
-                                serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
-                                                        NULL, 0, NULL, true);
-                                robust_write(ready_fd, response, response_len);
-                                remove_from_poll_array(i, poll_array);
-                                free(response);
-                            }
-                             */
-                            /* Debug: send 400 anyway */
-                            // const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n";
-                            // robust_write(ready_fd, bad_request_char, strlen(bad_request_char));
-                            // remove_from_poll_array(i, poll_array);
                             if (result_code == TEST_ERROR_PARSE_PARTIAL) {
-//                                const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n";
-//                                robust_write(ready_fd, bad_request_char, strlen(bad_request_char));
-//                                remove_from_poll_array(i, poll_array);
                                 break;
-                            }
-                            // handle normal request here
-                            if (result_code == TEST_ERROR_NONE) {
+                            } else if (result_code == TEST_ERROR_NONE) {
                                 // first handle the body field:
                                 bool should_close = false;
                                 for (int request_counter = 0; request_counter < request.header_count; request_counter++) {
@@ -375,15 +350,16 @@ int main(int argc, char *argv[]) {
                                         }
                                     }
                                 }
+                                // handle the case in which body of post is not delivered
                                 if (result_code == TEST_ERROR_PARSE_PARTIAL) {
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
-                                bool is_bad_request = serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close, logging_fd);
+                                bool is_bad_request = serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request.body != NULL) {
                                     free(request.body);
                                 }
-                                // if the request has 'Connection: close' in header
+                                // if the request has 'Connection: close' in header or the request is bad
                                 // should close the connection after service immediately
                                 if (should_close || is_bad_request) {
                                     // case in-sensitive search
@@ -392,21 +368,17 @@ int main(int argc, char *argv[]) {
                                 }
                                 // handle malformed result
                             } else if (result_code == TEST_ERROR_PARSE_FAILED){
-                                // TODO: handle malformed request
-                                /*
+                                /* Unknown Method , 400 Bad Request */
                                 char *response;
-
                                 size_t response_len;
                                 serialize_http_response(&response, &response_len, BAD_REQUEST_SHORT, NULL, NULL,
                                                         NULL, 0, NULL, true);
                                 robust_write(ready_fd, response, response_len);
                                 free(response);
-                                 */
-                                const char *bad_request_char = "HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n";
-                                robust_write(ready_fd, bad_request_char, strlen(bad_request_char));
                                 remove_from_poll_array(i, poll_array);
                                 break;
                             }
+                            // slide the request buffer
                             if (read_amount == poll_array->sizes[i]) {
                                 printf("read everything from the buffer\n");
                                 poll_array->sizes[i] = 0;
@@ -420,6 +392,7 @@ int main(int argc, char *argv[]) {
                                 poll_array->buffers[i] = new_buffer;
                                 poll_array->sizes[i] -= read_amount;
                             }
+                            // if we have more requests in the buffer, handle them
                             if (poll_array->sizes[i] > 0) {
                                 result_code = parse_http_request(poll_array->buffers[i], poll_array->sizes[i],
                                                                  &request, &read_amount);
