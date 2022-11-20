@@ -350,12 +350,16 @@ int main(int argc, char *argv[]) {
                                 }
                                 // handle the case in which body of post is not delivered
                                 if (result_code == TEST_ERROR_PARSE_PARTIAL) {
+                                    free(request.headers);
                                     break;
                                 }
                                 printf("Parsed a full request, about to serve_request()\n");
                                 serve_request(ready_fd, &request, www_folder, poll_array->buffers[i], read_amount, should_close);
                                 if (request.body != NULL) {
                                     free(request.body);
+                                }
+                                if (request.headers != NULL) {
+                                    free(request.headers);
                                 }
                                 // if the request has 'Connection: close' in header or the request is bad
                                 // should close the connection after service immediately
