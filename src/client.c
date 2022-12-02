@@ -8,15 +8,9 @@
  * No part of the HTTP project may be copied and/or distributed
  * without the express permission of the 15-441/641 course staff.
  */
-#include <arpa/inet.h>
 #include <parse_http.h>
 #include <ports.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
 #include <test_error.h>
-#include <unistd.h>
 
 int main(int argc, char *argv[]) {
   /* Validate and parse args */
@@ -25,7 +19,12 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-  /* Set up a connection to the HTTP server */
+  /* clean and recreate the .www folder for resource stroage */
+  const char* resource_folder = "./www/";
+  recursive_delete_folder(resource_folder);
+  mkdir(resource_folder, 0777);
+
+  /* Set up a connection to the HTTP server TODO: duplicate to make new connection*/
   int http_sock;
   struct sockaddr_in http_server;
   if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {

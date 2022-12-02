@@ -13,6 +13,7 @@
 
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -22,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -223,4 +225,14 @@ void remove_from_poll_array(int remove_idx, poll_array_t *array);
  * @param array pointer to the allocated poll array
  */
 void release_poll_array(poll_array_t *array);
+
+
+/**
+ * @brief recursively delete a folder and all contents inside it
+ * @param dirname the path to the folder to be deleted
+ * @reference: https://stackoverflow.com/questions/3833581/recursive-file-delete-in-c-on-linux
+ * @return error code if any
+ */
+int recursive_delete_folder(const char* dirname);
+
 #endif

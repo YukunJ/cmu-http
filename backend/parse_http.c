@@ -11,31 +11,26 @@
 #include "parse_http.h"
 
 void trim_whitespace(char *str, size_t str_len) {
-  size_t i = 0;
+    size_t i = 0;
 
-  while (isspace(str[i]) && str[i] != '\0' && i < str_len) {
-    i++;
-  }
-  // First non whitespace char
-  size_t firstCharInd = i;
+    while (isspace(str[i]) && i < str_len) {
+        i++;
+    }
+    // First non whitespace char
+    size_t firstCharInd = i;
 
-  i = str_len - 1;
-  while (isspace(str[i]) && i > 0) {
-    i--;
-  }
-  // First whitespace char
-  size_t lastCharInd = i;
-
-  if (firstCharInd == 0) {
-    return;
-  }
-
-  size_t len = lastCharInd - firstCharInd + 1;
-  for (int startInd = 0, curCharInd = firstCharInd; startInd < len;
-       startInd++, curCharInd++) {
-    str[startInd] = str[curCharInd];
-  }
-  str[len] = '\0';
+    i = str_len - 1;
+    while (isspace(str[i]) && i > 0) {
+        i--;
+    }
+    // First whitespace char
+    size_t lastCharInd = i;
+    size_t len = lastCharInd - firstCharInd + 1;
+    for (int startInd = 0, curCharInd = firstCharInd; startInd < len;
+         startInd++, curCharInd++) {
+        str[startInd] = str[curCharInd];
+    }
+    str[len] = '\0';
 }
 
 void to_lower(char *str, size_t str_len) {
@@ -619,4 +614,47 @@ void release_poll_array(poll_array_t *array) {
   }
   free(array->pfds);
   free(array);
+}
+
+/**
+ * @brief recursively delete a folder and all contents inside it
+ * @param dirname the path to the folder to be deleted
+ * @reference: https://stackoverflow.com/questions/3833581/recursive-file-delete-in-c-on-linux
+ * @return error code if any
+ */
+int recursive_delete_folder(const char* dirname) {
+
+    DIR *dp;
+    struct dirent *ep;
+
+    char abs_filename[FILENAME_MAX];
+
+    dp = opendir(dirname);
+    if (dp != NULL) {
+        while (ep = readdir(dp)) {
+            struct stat stFileInfo;
+
+            snprintf(abs_filename, FILENAME_MAX, "%s/%s", dirname, ep->d_name);
+
+            if (lstat(abs_filename, &stFileInfo) < 0)
+                perror(abs_filename);
+
+            if (S_ISDIR(stFileInfo.st_mode)) {
+                if(strcmp(ep->d_name, ".") &&
+                   strcmp(ep->d_name, "..")) {
+                    printf("%s is a directory to be recursively deleted\n",abs_filename);
+                    recursive_delete_folder(abs_filename);
+                }
+            } else {
+                printf("%s is a file to be deleted\n",abs_filename);
+                remove(abs_filename);
+            }
+        }
+        closedir(dp);
+    } else {
+        printf("The folder to be deleted does not exist\n");
+        return 0;
+    }
+    remove(dirname);
+    return 0;
 }
