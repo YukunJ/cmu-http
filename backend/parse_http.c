@@ -19,6 +19,11 @@ void trim_whitespace(char *str, size_t str_len) {
     // First non whitespace char
     size_t firstCharInd = i;
 
+    if (firstCharInd == str_len){
+        str[0] = '\0';
+        return;
+    }
+
     i = str_len - 1;
     while (isspace(str[i]) && i > 0) {
         i--;
