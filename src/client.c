@@ -254,8 +254,7 @@ int main(int argc, char *argv[]) {
   /* CP1: Send out a HTTP request, waiting for the response */
   // make request here for dependency.csv
   send_request("dependency.csv", http_sock);
-  send_request("index.html", http_sock);
-  return 0;
+
   // read the response from the server here
   bool header_obtained = false;
   char *response_buffer = NULL;
