@@ -10,6 +10,222 @@
  */
 #include "parse_http.h"
 
+/**
+ * Create a new vector with the default initial capacity
+ * @return pointer to dynamically allocated vector
+ */
+vector_t *create_vector() {
+    vector_t *new_vector = (vector_t *)malloc(sizeof(vector_t));
+    new_vector->data = (void **)calloc(INITIAL_CAPACITY, sizeof(ELEMENT_TYPE));
+    new_vector->size = 0;
+    new_vector->capacity = INITIAL_CAPACITY;
+    return new_vector;
+}
+
+/**
+ * Release the dynamically-allocated memory for vector and its data
+ * @param vec pointer to a vector
+ */
+void free_vector(vector_t *vec) {
+    if (vec) {
+        for (int64_t i = 0; i < vec->size; i++) {
+            free(vec->data[i]);
+        }
+        free(vec);
+    }
+}
+
+/**
+ * Expand the vector by twice the size and copy over the data
+ * local-only visible func
+ * @param vec pointer to a vector
+ */
+static void vec_expand(vector_t *vec) {
+    ELEMENT_TYPE *old_data = vec->data;
+    ELEMENT_TYPE *new_data =
+    (void **)calloc(MUL_FACTOR * vec->capacity, sizeof(ELEMENT_TYPE));
+    memcpy(new_data, vec->data, sizeof(ELEMENT_TYPE) * vec->capacity);
+    vec->capacity *= MUL_FACTOR;
+    vec->data = new_data;
+    free(old_data);
+}
+
+/**
+ * Get the current size of the vector
+ * @param vec pointer to a vector
+ * @return size of the vector
+ */
+int64_t vec_size(vector_t *vec) { return vec->size; }
+
+/**
+ * Get the idx-th element in the vector
+ * @param vec pointer to a vector
+ * @param idx the index to be retrieved
+ * @return the element (a pointer type), or NULL if the index is inappropriate
+ */
+ELEMENT_TYPE vec_get(vector_t *vec, int64_t idx) {
+    if (idx < 0 || idx >= vec->size) {
+        return NULL;
+    }
+    return vec->data[idx];
+}
+
+/**
+ * Insert an element at the back of the vector
+ * if the size reaches capacity, do dynamic expanding on the fly
+ * @attention once the element enters this vector, vector will control its
+ * lifecycle including free its dynamically allocated memory in the end
+ * @param vec pointer to a vector
+ * @param e the element to be inserted
+ */
+void vec_push_back(vector_t *vec, ELEMENT_TYPE e) {
+    if (vec->size == vec->capacity) {
+        vec_expand(vec);
+    }
+    vec->data[vec->size] = e;
+    vec->size++;
+}
+
+/**
+ * Reverse the order of elements in the vector
+ * @param vec pointer to a vector
+ */
+void vec_reverse(vector_t *vec) {
+    int64_t left = 0, right = vec->size - 1;
+    ELEMENT_TYPE temp;
+    while (left < right) {
+        temp = vec->data[left];
+        vec->data[left] = vec->data[right];
+        vec->data[right] = temp;
+        left++;
+        right--;
+    }
+}
+
+/**
+ * Find the best element in the vector
+ * according to the specific comparator function
+ * this comparator should return True when the left hand side is better than rhs
+ * @param vec pointer to a vector
+ * @param comp a function pointer that return True if left hand side is better
+ * than rhs
+ * @return the index of best element in this vector, or -1 indicates problem
+ */
+int64_t vec_find_best(vector_t *vec, bool (*comp)(ELEMENT_TYPE, ELEMENT_TYPE)) {
+    if (!vec->size) {
+        return -1;
+    }
+    int64_t best_index = 0;
+    for (int64_t i = 1; i < vec->size; i++) {
+        if ((*comp)(vec->data[i], vec->data[best_index])) {
+            best_index = i;
+        }
+    }
+    return best_index;
+}
+
+/**
+ * To Locate a specific element in the vector
+ * require the input of a comparator
+ * can be used together with the vec_remove_by_index function below
+ * @param vec pointer to a vector
+ * @param element_to_find the element to be find
+ * @param comp a function pointer act as the equal comparator, return True if
+ * two input is considered equal
+ * @return index of that element if found, or -1
+ */
+int64_t vec_find(vector_t *vec, ELEMENT_TYPE element_to_find,
+                 bool (*comp)(ELEMENT_TYPE, ELEMENT_TYPE)) {
+    for (int64_t i = 0; i < vec->size; i++) {
+        if ((*comp)(vec->data[i], element_to_find)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Remove the element specified at the index
+ * @param vec pointer to a vector
+ * @param idx the index of the element to be removed
+ * @return true if such deletion is successfully
+ */
+bool vec_remove_by_index(vector_t *vec, int64_t idx) {
+    if (idx < 0 || idx >= vec->size) {
+        // the index is not within correct range
+        return false;
+    }
+    free(vec->data[idx]);
+    for (int64_t i = idx; i < vec->size - 1; i++) {
+        // shift right hand by one index to the left
+        vec->data[i] = vec->data[i + 1];
+    }
+    vec->size--;
+    return true;
+}
+
+/**
+ * Pop out the first element of vector
+ * @param vec pointer to a vector
+ */
+void vec_pop_front(vector_t *vec) {
+    if (vec_size(vec) == 0) {
+        perror("Pop front on an empty vector");
+        return;
+    }
+    vec_remove_by_index(vec, 0);
+}
+
+/**
+ * Replace the vector's element at a specific index by a new one
+ * @param vec pointer to a vector
+ * @param idx the index of the element to be replaced
+ * @param new_element pointer to a new element
+ * @return true if such replacement is successfully
+ */
+bool vec_replace_by_index(vector_t *vec, int64_t idx,
+                          ELEMENT_TYPE new_element) {
+    if (idx < 0 || idx >= vec->size) {
+        // the index is not within correct range
+        return false;
+    }
+    free(vec->data[idx]);
+    vec->data[idx] = new_element;
+    return true;
+}
+
+/**
+ * Clear out the data in vec and reset to default state
+ * @param vec pointer to a vector
+ */
+void vec_clear(vector_t *vec) {
+    if (vec) {
+        for (int64_t i = 0; i < vec->size; i++) {
+            free(vec->data[i]);
+        }
+        free(vec->data);
+        vec->data = (void **)calloc(INITIAL_CAPACITY, sizeof(ELEMENT_TYPE));
+        vec->size = 0;
+        vec->capacity = INITIAL_CAPACITY;
+    }
+}
+
+/**
+ * Helper function to print a vector with the provided printer function for each
+ * element
+ * @param vec pointer to a vector
+ * @param element_printer function printer that prints out an individual element
+ */
+void vec_print(vector_t *vec, void(element_printer)(ELEMENT_TYPE)) {
+    printf(
+            "Printer: Vector of size %lld and capacity %lld, contents as follow:\n",
+            (long long)vec->size, (long long)vec->capacity);
+    for (int64_t i = 0; i < vec->size; i++) {
+        (*element_printer)(vec->data[i]);
+    }
+    printf("\n");
+}
+
 void trim_whitespace(char *str, size_t str_len) {
     size_t i = 0;
 
@@ -42,6 +258,70 @@ void to_lower(char *str, size_t str_len) {
   for (int i = 0; i < str_len; i++) {
     str[i] = tolower(str[i]);
   }
+}
+
+/**
+ * @brief      Parse a HTTP response from a buffer
+ *
+ * @param      buffer  The buffer (input)
+ * @param      size    The size of the buffer (input)
+ * @param      content_size the size of the response content (output)
+ * @param      header_size the size of the whole header to be slided (output)
+ * @return     the error code
+ */
+test_error_code_t parse_http_response(char *buffer, size_t size, int *content_size, int *header_size) {
+    // Differant states in the state machine
+    enum { STATE_START = 0, STATE_CR, STATE_CRLF, STATE_CRLFCR, STATE_CRLFCRLF };
+
+    int i = 0, state;
+    size_t offset = 0;
+    char ch;
+    char buf[8192];
+    memset(buf, 0, 8192);
+
+    state = STATE_START;
+    while (state != STATE_CRLFCRLF) {
+        char expected = 0;
+
+        if (i == size) break;
+        ch = buffer[i++];
+        buf[offset++] = ch;
+
+        switch (state) {
+            case STATE_START:
+            case STATE_CRLF:
+                expected = '\r';
+                break;
+            case STATE_CR:
+            case STATE_CRLFCR:
+                expected = '\n';
+                break;
+            default:
+                state = STATE_START;
+                continue;
+        }
+
+        if (ch == expected)
+            state++;
+        else
+            state = STATE_START;
+    }
+    *header_size = i; // to be slided out
+    // Valid End State
+    if (state == STATE_CRLFCRLF) {
+        // try to find the content_len field;
+        char *begin = strstr(buf, CONTENT_LENGTH);
+        // char *begin = strstr(buf, "ength");
+        begin = strstr(begin, " ") + 1;
+        char *end = strstr(begin, "\r\n");
+        int length = end - begin;
+        char content_length_buf[128];
+        memset(content_length_buf, 0, sizeof(content_length_buf));
+        memcpy(content_length_buf, begin, length);
+        *content_size = atoi(content_length_buf);
+        return TEST_ERROR_NONE;
+    }
+    return TEST_ERROR_PARSE_PARTIAL;
 }
 
 /**
@@ -662,4 +942,59 @@ int recursive_delete_folder(const char* dirname) {
     }
     remove(dirname);
     return 0;
+}
+
+/**
+ * Create a pending work on Heap
+ */
+pending_work_t *make_pending_work(char* work) {
+    pending_work_t *pending_work = (pending_work_t *) malloc(sizeof(pending_work_t));
+    size_t work_size = strlen(work);
+    pending_work->file_name = (char *) malloc(sizeof(char) * (work_size + 1));
+    memcpy(pending_work->file_name, work, work_size + 1);
+    pending_work->requested = false;
+    return pending_work;
+}
+
+/**
+ * Create a record on Heap
+ */
+record_t *make_record(char* parent, char* child) {
+    record_t *new_record = (record_t *) malloc(sizeof(record_t));
+    size_t parent_size = strlen(parent);
+    size_t child_size = strlen(child);
+    new_record->parent_file = (char *) malloc(parent_size + 1);
+    memcpy(new_record->parent_file, parent, parent_size+1);
+    new_record->file = (char *) malloc(child_size + 1);
+    memcpy(new_record->file, child, child_size+1);
+    new_record->finished = false;
+    return new_record;
+}
+
+/**
+ * Generate a new dependency record and add into dynamic vector
+ */
+void add_record(vector_t *vec, char* parent, char* child) {
+    record_t *new_record = make_record(parent, child);
+    vec_push_back(vec, new_record);
+}
+
+/**
+ * Remove the head of a record vector
+ */
+void remove_record(vector_t *vec) {
+    record_t *first_record = (record_t *)vec_get(vec, 0);
+    free(first_record->parent_file);
+    free(first_record->file);
+    // vec itself will free the record_t *
+    vec_pop_front(vec);
+}
+
+/**
+ * Remove the head of a pending work vector
+ */
+void remove_pending_work(vector_t *vec) {
+    pending_work_t *first_work = (pending_work_t *) vec_get(vec, 0);
+    free(first_work->file_name);
+    vec_pop_front(vec);
 }
