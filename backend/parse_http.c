@@ -40,7 +40,7 @@ void free_vector(vector_t *vec) {
  * local-only visible func
  * @param vec pointer to a vector
  */
-static void vec_expand(vector_t *vec) {
+void vec_expand(vector_t *vec) {
     ELEMENT_TYPE *old_data = vec->data;
     ELEMENT_TYPE *new_data =
     (void **)calloc(MUL_FACTOR * vec->capacity, sizeof(ELEMENT_TYPE));
@@ -311,7 +311,7 @@ test_error_code_t parse_http_response(char *buffer, size_t size, int *content_si
     if (state == STATE_CRLFCRLF) {
         // try to find the content_len field;
         //char *begin = strstr(buf, CONTENT_LENGTH);
-        char *begin = strstr(buf, "ength");
+        char *begin = strstr(buf, CONTENT_LENGTH);
         begin = strstr(begin, " ") + 1;
         char *end = strstr(begin, "\r\n");
         int length = end - begin;

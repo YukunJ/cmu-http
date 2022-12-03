@@ -76,7 +76,7 @@ void free_vector(vector_t *vec);
  * local-only visible func
  * @param vec pointer to a vector
  */
-static void vec_expand(vector_t *vec);
+void vec_expand(vector_t *vec);
 
 /**
  * Get the current size of the vector
