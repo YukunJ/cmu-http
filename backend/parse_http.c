@@ -310,8 +310,8 @@ test_error_code_t parse_http_response(char *buffer, size_t size, int *content_si
     // Valid End State
     if (state == STATE_CRLFCRLF) {
         // try to find the content_len field;
-        char *begin = strstr(buf, CONTENT_LENGTH);
-        // char *begin = strstr(buf, "ength");
+        //char *begin = strstr(buf, CONTENT_LENGTH);
+        char *begin = strstr(buf, "ength");
         begin = strstr(begin, " ") + 1;
         char *end = strstr(begin, "\r\n");
         int length = end - begin;
