@@ -191,8 +191,7 @@ void pipeline_work_request(int tid, vector_t *work_vec, int server_fd) {
  */
 void *thread(void* tid) {
     int thread_id = (int) tid;
-    // int server_fd = sock_fds[thread_id];
-    int server_fd = build_socket();
+    int server_fd = sock_fds[thread_id];
     char *response_buffer = NULL;
     int response_buffer_size = 0;
     char local_buf[BUF_SIZE];
@@ -270,6 +269,7 @@ void *thread(void* tid) {
             result_code = parse_http_response(response_buffer, response_buffer_size, &content_size, &header_size);
         }
     }
+    close(server_fd);
     return NULL;
 }
 
