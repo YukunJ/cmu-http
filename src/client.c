@@ -13,7 +13,7 @@
 #include <test_error.h>
 #include <pthread.h>
 
-#define PARALLELISM 2
+#define PARALLELISM 4
 #define BUF_SIZE 8192
 #define COMMON_FLAG 0
 #define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
@@ -128,8 +128,7 @@ bool is_all_work_finished(void) {
 /**
  * Add more dependent work to pending work vector
  */
-void add_more_work(char *finished_file, vector_t *work_vec, int thread_id) {
-    pthread_mutex_lock(&work_vector_locks[thread_id]);
+void add_more_work(char *finished_file) {
     for (int i = 0; i < vec_size(record_vector); i++) {
         record_t *record = vec_get(record_vector, i);
         if (strcmp(record->file, finished_file) == 0) {
@@ -139,11 +138,17 @@ void add_more_work(char *finished_file, vector_t *work_vec, int thread_id) {
         if (strcmp(record->parent_file, finished_file) == 0) {
             // trigger new task as a parent
             char * new_work_name = record->file;
+            pthread_mutex_lock(&next_worker_lock);
+            int next_worker = next_worker_id;
+            next_worker_id = (1 + next_worker_id) % PARALLELISM;
+            pthread_mutex_unlock(&next_worker_lock);
+            pthread_mutex_lock(&work_vector_locks[next_worker]);
+            vector_t *work_vec = pending_work_vectors[next_worker];
             pending_work_t *new_work = make_pending_work(new_work_name);
             vec_push_back(work_vec, new_work);
+            pthread_mutex_unlock(&work_vector_locks[next_worker]);
         }
     }
-    pthread_mutex_unlock(&work_vector_locks[thread_id]);
 }
 
 /**
@@ -229,11 +234,7 @@ void *thread(void* tid) {
             store_file(store_buf, content_buf, content_size);
             free(content_buf);
             // add new task
-            pthread_mutex_lock(&next_worker_lock);
-            int next_worker = next_worker_id;
-            next_worker_id = (next_worker_id + 1) % PARALLELISM;
-            pthread_mutex_unlock(&next_worker_lock);
-            add_more_work(finished_filename, pending_work_vectors[next_worker], next_worker); // trace dependency
+            add_more_work(finished_filename); // trace dependency
             pthread_mutex_lock(&work_vector_locks[thread_id]);
             remove_pending_work(pending_work_vectors[thread_id]); // pop head of the pending work vector
             pthread_mutex_unlock(&work_vector_locks[thread_id]);
