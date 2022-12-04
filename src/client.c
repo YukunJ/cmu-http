@@ -13,7 +13,7 @@
 #include <test_error.h>
 #include <pthread.h>
 
-#define PARALLELISM 4
+#define PARALLELISM 2
 #define BUF_SIZE 8192
 #define COMMON_FLAG 0
 #define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
