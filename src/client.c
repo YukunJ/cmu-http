@@ -13,7 +13,7 @@
 #include <test_error.h>
 #include <pthread.h>
 
-#define PARALLELISM 2
+#define PARALLELISM 4
 #define BUF_SIZE 8192
 #define COMMON_FLAG 0
 #define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
@@ -222,6 +222,7 @@ void *thread(void* tid) {
             // write the file onto disk;
             pthread_mutex_lock(&work_vector_locks[thread_id]);
             char * finished_filename = ((pending_work_t *)vec_get(pending_work_vectors[thread_id], 0))->file_name;
+            printf("Thread %d store file %s\n", thread_id, finished_filename);
             pthread_mutex_unlock(&work_vector_locks[thread_id]);
             char store_buf[256] = "./www/";
             strcpy(store_buf + strlen("./www/"), finished_filename);
