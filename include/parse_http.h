@@ -13,6 +13,7 @@
 
 #include <arpa/inet.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -22,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -32,6 +34,142 @@
 
 #define SUCCESS 0
 #define HTTP_SIZE 4096
+
+/** the initial capacity of vector */
+#define INITIAL_CAPACITY 4
+
+/** the multiplicative factor when resizing the vector */
+#define MUL_FACTOR 2
+
+/** the default element type for vector is void *, so it could generically
+ * handle any data type */
+#define ELEMENT_TYPE void *
+
+// ======================== vector ========================= //
+/*
+ * the dynamic expanding vector
+ * NOT thread-safe be careful
+ * use generic pointer "void *" as its element type, so it can hold any type
+ * if you need to find an element in the vector,
+ * it needs to be provided with a comparator function pointer
+ */
+typedef struct vector {
+    ELEMENT_TYPE *data;
+    int64_t size;
+    int64_t capacity;
+} vector_t;
+
+/**
+ * Create a new vector with the default initial capacity
+ * @return pointer to dynamically allocated vector
+ */
+vector_t *create_vector();
+
+/**
+ * Release the dynamically-allocated memory for vector and its data
+ * @param vec pointer to a vector
+ */
+void free_vector(vector_t *vec);
+
+/**
+ * Expand the vector by twice the size and copy over the data
+ * local-only visible func
+ * @param vec pointer to a vector
+ */
+void vec_expand(vector_t *vec);
+
+/**
+ * Get the current size of the vector
+ * @param vec pointer to a vector
+ * @return size of the vector
+ */
+int64_t vec_size(vector_t *vec);
+
+/**
+ * Get the idx-th element in the vector
+ * @param vec pointer to a vector
+ * @param idx the index to be retrieved
+ * @return the element (a pointer type), or NULL if the index is inappropriate
+ */
+ELEMENT_TYPE vec_get(vector_t *vec, int64_t idx);
+
+/**
+ * Insert an element at the back of the vector
+ * if the size reaches capacity, do dynamic expanding on the fly
+ * @attention once the element enters this vector, vector will control its
+ * lifecycle including free its dynamically allocated memory in the end
+ * @param vec pointer to a vector
+ * @param e the element to be inserted
+ */
+void vec_push_back(vector_t *vec, ELEMENT_TYPE e);
+
+/**
+ * Reverse the order of elements in the vector
+ * @param vec pointer to a vector
+ */
+void vec_reverse(vector_t *vec);
+
+/**
+ * Find the best element in the vector
+ * according to the specific comparator function
+ * this comparator should return True when the left hand side is better than rhs
+ * @param vec pointer to a vector
+ * @param comp a function pointer that return True if left hand side is better
+ * than rhs
+ * @return the index of best element in this vector, or -1 indicates problem
+ */
+int64_t vec_find_best(vector_t *vec, bool (*comp)(ELEMENT_TYPE, ELEMENT_TYPE));
+
+/**
+ * To Locate a specific element in the vector
+ * require the input of a comparator
+ * can be used together with the vec_remove_by_index function below
+ * @param vec pointer to a vector
+ * @param element_to_find the element to be find
+ * @param comp a function pointer act as the equal comparator, return True if
+ * two input is considered equal
+ * @return index of that element if found, or -1
+ */
+int64_t vec_find(vector_t *vec, ELEMENT_TYPE element_to_find,
+                 bool (*comp)(ELEMENT_TYPE, ELEMENT_TYPE));
+
+/**
+ * Remove the element specified at the index
+ * @param vec pointer to a vector
+ * @param idx the index of the element to be removed
+ * @return true if such deletion is successfully
+ */
+bool vec_remove_by_index(vector_t *vec, int64_t idx);
+
+/**
+ * Pop out the first element of vector
+ * @param vec pointer to a vector
+ */
+void vec_pop_front(vector_t *vec);
+
+/**
+ * Replace the vector's element at a specific index by a new one
+ * @param vec pointer to a vector
+ * @param idx the index of the element to be replaced
+ * @param new_element pointer to a new element
+ * @return true if such replacement is successfully
+ */
+bool vec_replace_by_index(vector_t *vec, int64_t idx,
+                          ELEMENT_TYPE new_element);
+
+/**
+ * Clear out the data in vec and reset to default state
+ * @param vec pointer to a vector
+ */
+void vec_clear(vector_t *vec);
+
+/**
+ * Helper function to print a vector with the provided printer function for each
+ * element
+ * @param vec pointer to a vector
+ * @param element_printer function printer that prints out an individual element
+ */
+void vec_print(vector_t *vec, void(element_printer)(ELEMENT_TYPE));
 
 /* HTTP Methods */
 extern const char *HEAD, *GET, *POST;
@@ -104,6 +242,19 @@ test_error_code_t serialize_http_request(char *buffer, size_t *size,
  */
 test_error_code_t parse_http_request(char *buffer, size_t size,
                                      Request *request, int *read_amount);
+
+
+/**
+ * @brief      Parse a HTTP response from a buffer
+ *
+ * @param      buffer  The buffer (input)
+ * @param      size    The size of the buffer (input)
+ * @param      content_size the size of the response content (output)
+ * @param      header_size the size of the whole header to be slided (output)
+ * @return     the error code
+ */
+test_error_code_t parse_http_response(char *buffer, size_t size, int *content_size, int *header_size);
+
 
 /**
  * @brief      Serialize a HTTP response from the Request struct to a buffer
@@ -223,4 +374,52 @@ void remove_from_poll_array(int remove_idx, poll_array_t *array);
  * @param array pointer to the allocated poll array
  */
 void release_poll_array(poll_array_t *array);
+
+
+/**
+ * @brief recursively delete a folder and all contents inside it
+ * @param dirname the path to the folder to be deleted
+ * @reference: https://stackoverflow.com/questions/3833581/recursive-file-delete-in-c-on-linux
+ * @return error code if any
+ */
+int recursive_delete_folder(const char* dirname);
+
+/**
+ * Record for a dependency task
+ */
+typedef struct {
+    char *parent_file;
+    char *file;
+    bool finished;
+} record_t;
+
+typedef struct {
+    char *file_name;
+    bool requested;
+} pending_work_t;
+
+/**
+ * Create a pending work on Heap
+ */
+pending_work_t *make_pending_work(char* work);
+
+/**
+ * Create a record on Heap
+ */
+record_t *make_record(char* parent, char* child);
+
+/**
+ * Generate a new dependency record and add into dynamic vector
+ */
+void add_record(vector_t *vec, char* parent, char* child);
+
+/**
+ * Remove the head of a vector
+ */
+void remove_record(vector_t *vec);
+
+/**
+ * Remove the head of a pending work vector
+ */
+void remove_pending_work(vector_t *vec);
 #endif
