@@ -11,7 +11,9 @@
 #include <parse_http.h>
 #include <ports.h>
 #include <test_error.h>
+#include <pthread.h>
 
+#define PARALLELISM 2
 #define BUF_SIZE 8192
 #define COMMON_FLAG 0
 #define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
@@ -19,7 +21,15 @@
 const char* resource_folder = "./www/";
 
 vector_t *record_vector;
-vector_t *pending_work_vector;
+
+/* parallelism concurrency control */
+int next_worker_id = 0;
+vector_t *pending_work_vectors[PARALLELISM];
+pthread_mutex_t record_vector_lock;
+pthread_mutex_t next_worker_lock;
+pthread_mutex_t work_vector_locks[PARALLELISM];
+int sock_fds[PARALLELISM];
+pthread_t thread_ids[PARALLELISM];
 
 /**
  * @brief Fill in a request struct based on the resource requesting
@@ -103,19 +113,23 @@ void process_dependency(char *dependency_csv_path) {
  * Check if all the works have been finished
  */
 bool is_all_work_finished(void) {
+    pthread_mutex_lock(&record_vector_lock);
     for (int i = 0; i < vec_size(record_vector); i++) {
         record_t *record = vec_get(record_vector, i);
         if (!record->finished) {
+            pthread_mutex_unlock(&record_vector_lock);
             return false;
         }
     }
+    pthread_mutex_unlock(&record_vector_lock);
     return true;
 }
 
 /**
  * Add more dependent work to pending work vector
  */
-void add_more_work(char *finished_file, vector_t *work_vec) {
+void add_more_work(char *finished_file, vector_t *work_vec, int thread_id) {
+    pthread_mutex_lock(&work_vector_locks[thread_id]);
     for (int i = 0; i < vec_size(record_vector); i++) {
         record_t *record = vec_get(record_vector, i);
         if (strcmp(record->file, finished_file) == 0) {
@@ -129,12 +143,14 @@ void add_more_work(char *finished_file, vector_t *work_vec) {
             vec_push_back(work_vec, new_work);
         }
     }
+    pthread_mutex_unlock(&work_vector_locks[thread_id]);
 }
 
 /**
  * Check if there is any new request to be made to server
  */
-void pipeline_work_request(vector_t *work_vec, int server_fd) {
+void pipeline_work_request(int tid, vector_t *work_vec, int server_fd) {
+    pthread_mutex_lock(&work_vector_locks[tid]);
     for (int i = 0; i < vec_size(work_vec); i++) {
         pending_work_t *work = vec_get(work_vec, i);
         if (!work->requested) {
@@ -142,18 +158,21 @@ void pipeline_work_request(vector_t *work_vec, int server_fd) {
             work->requested = true;
         }
     }
+    pthread_mutex_unlock(&work_vector_locks[tid]);
 }
 
 /**
  * Threading worker
  */
-void thread(int tid, int server_fd) {
+void *thread(void* tid) {
+    int thread_id = (int) tid;
+    int server_fd = sock_fds[thread_id];
     char *response_buffer = NULL;
     int response_buffer_size = 0;
     char local_buf[BUF_SIZE];
     while (!is_all_work_finished()) {
         // 0. scan through pending work to see if there is any request to make
-        pipeline_work_request(pending_work_vector, server_fd);
+        pipeline_work_request(thread_id, pending_work_vectors[thread_id], server_fd);
         // 1. read
         memset(local_buf, 0, sizeof(local_buf));
         ssize_t ready = recv(server_fd, local_buf, BUF_SIZE, MSG_DONTWAIT);
@@ -201,14 +220,22 @@ void thread(int tid, int server_fd) {
                 response_buffer_size -= content_size;
             }
             // write the file onto disk;
-            char * finished_filename = ((pending_work_t *)vec_get(pending_work_vector, 0))->file_name;
+            pthread_mutex_lock(&work_vector_locks[thread_id]);
+            char * finished_filename = ((pending_work_t *)vec_get(pending_work_vectors[thread_id], 0))->file_name;
+            pthread_mutex_unlock(&work_vector_locks[thread_id]);
             char store_buf[256] = "./www/";
             strcpy(store_buf + strlen("./www/"), finished_filename);
             store_file(store_buf, content_buf, content_size);
             free(content_buf);
             // add new task
-            add_more_work(finished_filename, pending_work_vector); // trace dependency
-            remove_pending_work(pending_work_vector); // pop head of the pending work vector
+            pthread_mutex_lock(&next_worker_lock);
+            int next_worker = next_worker_id;
+            next_worker_id = (next_worker_id + 1) % PARALLELISM;
+            pthread_mutex_unlock(&next_worker_lock);
+            add_more_work(finished_filename, pending_work_vectors[next_worker], next_worker); // trace dependency
+            pthread_mutex_lock(&work_vector_locks[thread_id]);
+            remove_pending_work(pending_work_vectors[thread_id]); // pop head of the pending work vector
+            pthread_mutex_unlock(&work_vector_locks[thread_id]);
             // try to read the next file
             if (response_buffer_size == 0) {
                 break;
@@ -216,6 +243,7 @@ void thread(int tid, int server_fd) {
             result_code = parse_http_response(response_buffer, response_buffer_size, &content_size, &header_size);
         }
     }
+    return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -227,29 +255,36 @@ int main(int argc, char *argv[]) {
 
   /* initialize the vector for storing dependency record */
   record_vector = create_vector();
-  pending_work_vector = create_vector();
+  for (int i = 0; i < PARALLELISM; i++) {
+      pending_work_vectors[i] = create_vector();
+  }
 
   /* clean and recreate the .www folder for resource stroage */
   recursive_delete_folder(resource_folder);
   mkdir(resource_folder, 0777);
 
-  /* Set up a connection to the HTTP server TODO: duplicate to make new connection*/
-  int http_sock;
-  struct sockaddr_in http_server;
-  if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    return TEST_ERROR_HTTP_CONNECT_FAILED;
-  }
-  http_server.sin_family = AF_INET;
-  http_server.sin_port = htons(HTTP_PORT);
-  inet_pton(AF_INET, argv[1], &(http_server.sin_addr));
+  /* Set up a connection to the HTTP server */
+  for (int i = 0; i < PARALLELISM; i++) {
+      int http_sock;
+      struct sockaddr_in http_server;
+      if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+          return TEST_ERROR_HTTP_CONNECT_FAILED;
+      }
+      http_server.sin_family = AF_INET;
+      http_server.sin_port = htons(HTTP_PORT);
+      inet_pton(AF_INET, argv[1], &(http_server.sin_addr));
 
-  fprintf(stderr, "Parsed IP address of the server: %X\n",
-          htonl(http_server.sin_addr.s_addr));
+      fprintf(stderr, "Parsed IP address of the server: %X\n",
+              htonl(http_server.sin_addr.s_addr));
 
-  if (connect(http_sock, (struct sockaddr *)&http_server, sizeof(http_server)) <
-      0) {
-    return TEST_ERROR_HTTP_CONNECT_FAILED;
+      if (connect(http_sock, (struct sockaddr *) &http_server, sizeof(http_server)) <
+          0) {
+          return TEST_ERROR_HTTP_CONNECT_FAILED;
+      }
+      sock_fds[i] = http_sock;
   }
+
+  int http_sock = sock_fds[0]; // pick the first one to do initial work
 
   /* CP1: Send out a HTTP request, waiting for the response */
   // make request here for dependency.csv
@@ -314,9 +349,18 @@ int main(int argc, char *argv[]) {
     process_dependency(dependency_csv_path);
 
     pending_work_t *index_work = make_pending_work("index.html");
-    vec_push_back(pending_work_vector, index_work);
+    vec_push_back(pending_work_vectors[1], index_work);
 
     /* spawn worker thread for parallelism */
-    thread(0, http_sock);
+    for (int i = 0; i < PARALLELISM; i++) {
+        pthread_t pid;
+        pthread_create(&pid, NULL, &thread, i);
+        thread_ids[i] = pid;
+    }
+
+    /* harvest threads */
+    for (int i = 0; i < PARALLELISM; i++) {
+        pthread_join(thread_ids[i], NULL);
+    }
     return 0;
 }
