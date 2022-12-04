@@ -13,7 +13,7 @@
 #include <test_error.h>
 #include <pthread.h>
 
-#define PARALLELISM 4
+#define PARALLELISM 3
 #define BUF_SIZE 8192
 #define COMMON_FLAG 0
 #define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
@@ -30,6 +30,31 @@ pthread_mutex_t next_worker_lock;
 pthread_mutex_t work_vector_locks[PARALLELISM];
 int sock_fds[PARALLELISM];
 pthread_t thread_ids[PARALLELISM];
+
+char* server_ip;
+
+/**
+ * Build a client socket connected with the server
+ */
+int build_socket() {
+    int http_sock;
+    struct sockaddr_in http_server;
+    if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        return TEST_ERROR_HTTP_CONNECT_FAILED;
+    }
+    http_server.sin_family = AF_INET;
+    http_server.sin_port = htons(HTTP_PORT);
+    inet_pton(AF_INET, server_ip, &(http_server.sin_addr));
+
+    fprintf(stderr, "Parsed IP address of the server: %X\n",
+            htonl(http_server.sin_addr.s_addr));
+
+    if (connect(http_sock, (struct sockaddr *) &http_server, sizeof(http_server)) <
+        0) {
+        return TEST_ERROR_HTTP_CONNECT_FAILED;
+    }
+    return http_sock;
+}
 
 /**
  * @brief Fill in a request struct based on the resource requesting
@@ -166,7 +191,8 @@ void pipeline_work_request(int tid, vector_t *work_vec, int server_fd) {
  */
 void *thread(void* tid) {
     int thread_id = (int) tid;
-    int server_fd = sock_fds[thread_id];
+    // int server_fd = sock_fds[thread_id];
+    int server_fd = build_socket();
     char *response_buffer = NULL;
     int response_buffer_size = 0;
     char local_buf[BUF_SIZE];
@@ -264,25 +290,11 @@ int main(int argc, char *argv[]) {
   recursive_delete_folder(resource_folder);
   mkdir(resource_folder, 0777);
 
+  server_ip = argv[1];
+
   /* Set up a connection to the HTTP server */
   for (int i = 0; i < PARALLELISM; i++) {
-      int http_sock;
-      struct sockaddr_in http_server;
-      if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-          return TEST_ERROR_HTTP_CONNECT_FAILED;
-      }
-      http_server.sin_family = AF_INET;
-      http_server.sin_port = htons(HTTP_PORT);
-      inet_pton(AF_INET, argv[1], &(http_server.sin_addr));
-
-      fprintf(stderr, "Parsed IP address of the server: %X\n",
-              htonl(http_server.sin_addr.s_addr));
-
-      if (connect(http_sock, (struct sockaddr *) &http_server, sizeof(http_server)) <
-          0) {
-          return TEST_ERROR_HTTP_CONNECT_FAILED;
-      }
-      sock_fds[i] = http_sock;
+      sock_fds[i] = build_socket();
   }
 
   int http_sock = sock_fds[0]; // pick the first one to do initial work
