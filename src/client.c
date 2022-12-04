@@ -222,7 +222,7 @@ void *thread(void* tid) {
             // write the file onto disk;
             pthread_mutex_lock(&work_vector_locks[thread_id]);
             char * finished_filename = ((pending_work_t *)vec_get(pending_work_vectors[thread_id], 0))->file_name;
-            printf("Thread %d store file %s\n", thread_id, finished_filename);
+            printf("Thread %d store file %s with fd=%d\n", thread_id, finished_filename, server_fd);
             pthread_mutex_unlock(&work_vector_locks[thread_id]);
             char store_buf[256] = "./www/";
             strcpy(store_buf + strlen("./www/"), finished_filename);
@@ -244,6 +244,7 @@ void *thread(void* tid) {
             result_code = parse_http_response(response_buffer, response_buffer_size, &content_size, &header_size);
         }
     }
+    close(server_fd);
     return NULL;
 }
 
