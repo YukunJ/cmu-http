@@ -13,7 +13,7 @@
 #include <test_error.h>
 #include <pthread.h>
 
-#define PARALLELISM 3
+#define PARALLELISM 4
 #define BUF_SIZE 8192
 #define COMMON_FLAG 0
 #define MIN(X, Y) (((X) > (Y)) ? (Y) : (X))
@@ -30,31 +30,6 @@ pthread_mutex_t next_worker_lock;
 pthread_mutex_t work_vector_locks[PARALLELISM];
 int sock_fds[PARALLELISM];
 pthread_t thread_ids[PARALLELISM];
-
-char* server_ip;
-
-/**
- * Build a client socket connected with the server
- */
-int build_socket() {
-    int http_sock;
-    struct sockaddr_in http_server;
-    if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        return TEST_ERROR_HTTP_CONNECT_FAILED;
-    }
-    http_server.sin_family = AF_INET;
-    http_server.sin_port = htons(HTTP_PORT);
-    inet_pton(AF_INET, server_ip, &(http_server.sin_addr));
-
-    fprintf(stderr, "Parsed IP address of the server: %X\n",
-            htonl(http_server.sin_addr.s_addr));
-
-    if (connect(http_sock, (struct sockaddr *) &http_server, sizeof(http_server)) <
-        0) {
-        return TEST_ERROR_HTTP_CONNECT_FAILED;
-    }
-    return http_sock;
-}
 
 /**
  * @brief Fill in a request struct based on the resource requesting
@@ -269,82 +244,95 @@ void *thread(void* tid) {
             result_code = parse_http_response(response_buffer, response_buffer_size, &content_size, &header_size);
         }
     }
-    close(server_fd);
     return NULL;
 }
 
 int main(int argc, char *argv[]) {
-  /* Validate and parse args */
-  if (argc != 2) {
-    fprintf(stderr, "usage: %s <server-ip>\n", argv[0]);
-    return EXIT_FAILURE;
-  }
+    /* Validate and parse args */
+    if (argc != 2) {
+        fprintf(stderr, "usage: %s <server-ip>\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
-  /* initialize the vector for storing dependency record */
-  record_vector = create_vector();
-  for (int i = 0; i < PARALLELISM; i++) {
-      pending_work_vectors[i] = create_vector();
-  }
+    /* initialize the vector for storing dependency record */
+    record_vector = create_vector();
+    for (int i = 0; i < PARALLELISM; i++) {
+        pending_work_vectors[i] = create_vector();
+    }
 
-  /* clean and recreate the .www folder for resource stroage */
-  recursive_delete_folder(resource_folder);
-  mkdir(resource_folder, 0777);
+    /* clean and recreate the .www folder for resource stroage */
+    recursive_delete_folder(resource_folder);
+    mkdir(resource_folder, 0777);
 
-  server_ip = argv[1];
+    /* Set up a connection to the HTTP server */
+    for (int i = 0; i < PARALLELISM; i++) {
+        int http_sock;
+        struct sockaddr_in http_server;
+        if ((http_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            return TEST_ERROR_HTTP_CONNECT_FAILED;
+        }
+        http_server.sin_family = AF_INET;
+        http_server.sin_port = htons(HTTP_PORT);
+        inet_pton(AF_INET, argv[1], &(http_server.sin_addr));
 
-  /* Set up a connection to the HTTP server */
-  for (int i = 0; i < PARALLELISM; i++) {
-      sock_fds[i] = build_socket();
-  }
+        fprintf(stderr, "Parsed IP address of the server: %X\n",
+                htonl(http_server.sin_addr.s_addr));
 
-  int http_sock = sock_fds[0]; // pick the first one to do initial work
+        if (connect(http_sock, (struct sockaddr *) &http_server, sizeof(http_server)) <
+            0) {
+            return TEST_ERROR_HTTP_CONNECT_FAILED;
+        }
+        sock_fds[i] = http_sock;
+    }
 
-  /* CP1: Send out a HTTP request, waiting for the response */
-  // make request here for dependency.csv
-  send_request("dependency.csv", http_sock);
+    int http_sock = sock_fds[0]; // pick the first one to do initial work
 
-  // read the response from the server here
-  bool header_obtained = false;
-  char *response_buffer = NULL;
-  int response_buffer_size = 0;
-  int content_size;
-  while (!header_obtained) {
-      // read from the buffer
-      char local_buf[BUF_SIZE];
-      memset(local_buf, 0, sizeof(local_buf));
-      ssize_t ready = recv(http_sock, local_buf, BUF_SIZE, COMMON_FLAG);
-      if (ready > 0) {
-          if (response_buffer_size == 0) {
-              response_buffer = (char *)malloc(ready * sizeof(char));
-              memcpy(response_buffer, local_buf, ready);
-              response_buffer_size += ready;
-          } else {
-              response_buffer = (char *)realloc(response_buffer, (ready + response_buffer_size) * sizeof(char));
-              memcpy(response_buffer + response_buffer_size, local_buf, ready);
-              response_buffer_size += ready;
-          }
-      }
-      // parse the response
-      int header_size;
-      test_error_code_t result_code =
-              parse_http_response(response_buffer, response_buffer_size, &content_size, &header_size);
-      if (result_code != TEST_ERROR_NONE) {
-          continue;
-      }
-      header_obtained = true;
-      // slide the response buffer
-      if (header_size == response_buffer_size) {
-          response_buffer_size = 0;
-          free(response_buffer);
-          response_buffer = NULL;
-      } else {
-          char *new_buffer = (char *)malloc((response_buffer_size - header_size) * sizeof(char));
-          memcpy(new_buffer, response_buffer + header_size, response_buffer_size - header_size);
-          free(response_buffer);
-          response_buffer = new_buffer;
-          response_buffer_size -= header_size;
-      }
-  }
+    /* CP1: Send out a HTTP request, waiting for the response */
+    // make request here for dependency.csv
+    send_request("dependency.csv", http_sock);
+
+    // read the response from the server here
+    bool header_obtained = false;
+    char *response_buffer = NULL;
+    int response_buffer_size = 0;
+    int content_size;
+    while (!header_obtained) {
+        // read from the buffer
+        char local_buf[BUF_SIZE];
+        memset(local_buf, 0, sizeof(local_buf));
+        ssize_t ready = recv(http_sock, local_buf, BUF_SIZE, COMMON_FLAG);
+        if (ready > 0) {
+            if (response_buffer_size == 0) {
+                response_buffer = (char *)malloc(ready * sizeof(char));
+                memcpy(response_buffer, local_buf, ready);
+                response_buffer_size += ready;
+            } else {
+                response_buffer = (char *)realloc(response_buffer, (ready + response_buffer_size) * sizeof(char));
+                memcpy(response_buffer + response_buffer_size, local_buf, ready);
+                response_buffer_size += ready;
+            }
+        }
+        // parse the response
+        int header_size;
+        test_error_code_t result_code =
+                parse_http_response(response_buffer, response_buffer_size, &content_size, &header_size);
+        if (result_code != TEST_ERROR_NONE) {
+            continue;
+        }
+        header_obtained = true;
+        // slide the response buffer
+        if (header_size == response_buffer_size) {
+            response_buffer_size = 0;
+            free(response_buffer);
+            response_buffer = NULL;
+        } else {
+            char *new_buffer = (char *)malloc((response_buffer_size - header_size) * sizeof(char));
+            memcpy(new_buffer, response_buffer + header_size, response_buffer_size - header_size);
+            free(response_buffer);
+            response_buffer = new_buffer;
+            response_buffer_size -= header_size;
+        }
+    }
 
     // poll in for enough size of the content
     char * content_buf = malloc(sizeof(char) * content_size + 1);
